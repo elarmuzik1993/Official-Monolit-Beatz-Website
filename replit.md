@@ -13,9 +13,10 @@ Preferred communication style: Simple, everyday language.
 **October 13, 2025**
 - Completed initial website implementation with all sections (Home, About, Reviews, Services, Contact)
 - Integrated social media links from DistroKid (Instagram, YouTube, Spotify, Apple Music, iTunes, Deezer)
-- Added album artwork from "Humanity Last Beats" album
+- Added actual album artwork from "Humanity Last Beats" album (Red Ghost 2 Glo design)
 - Implemented accessible hamburger navigation menu using semantic <button> element with full keyboard support
 - Configured web server workflow to serve the static site on port 5000
+- Fixed image loading issues by using locally stored album artwork
 
 ## System Architecture
 
