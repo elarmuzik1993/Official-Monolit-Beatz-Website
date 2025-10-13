@@ -2,11 +2,13 @@ const hamburger = document.querySelector('.hamburger');
 const navMenu = document.querySelector('.nav-menu');
 const navLinks = document.querySelectorAll('.nav-link');
 
-hamburger.addEventListener('click', () => {
+const toggleMenu = () => {
+    const isExpanded = navMenu.classList.contains('active');
     navMenu.classList.toggle('active');
+    hamburger.setAttribute('aria-expanded', !isExpanded);
     
     const spans = hamburger.querySelectorAll('span');
-    if (navMenu.classList.contains('active')) {
+    if (!isExpanded) {
         spans[0].style.transform = 'rotate(45deg) translate(5px, 5px)';
         spans[1].style.opacity = '0';
         spans[2].style.transform = 'rotate(-45deg) translate(7px, -6px)';
@@ -14,6 +16,14 @@ hamburger.addEventListener('click', () => {
         spans[0].style.transform = 'none';
         spans[1].style.opacity = '1';
         spans[2].style.transform = 'none';
+    }
+};
+
+hamburger.addEventListener('click', toggleMenu);
+hamburger.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleMenu();
     }
 });
 
@@ -35,6 +45,7 @@ navLinks.forEach(link => {
         }
         
         navMenu.classList.remove('active');
+        hamburger.setAttribute('aria-expanded', 'false');
         const spans = hamburger.querySelectorAll('span');
         spans[0].style.transform = 'none';
         spans[1].style.opacity = '1';
