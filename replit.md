@@ -1,8 +1,8 @@
-# Elar Music Official Website
+# Monolit Beatz Official Website
 
 ## Overview
 
-Elar Music is a single-page artist portfolio website showcasing original music, experimental sounds, and visual journeys. The site serves as the official online presence for the artist, featuring their latest album "Humanity Last Beats," services offered, and social media integration. Built as a static frontend application, it provides an immersive browsing experience with smooth navigation and responsive design.
+Monolit Beatz is a single-page artist portfolio website showcasing original music, experimental sounds, and visual journeys. The site serves as the official online presence for the artist, featuring their latest album "Humanity Last Beats," services offered, and social media integration. Built as a static frontend application, it provides an immersive browsing experience with smooth navigation and responsive design.
 
 ## User Preferences
 
@@ -74,15 +74,17 @@ Preferred communication style: Simple, everyday language.
 **Social Media Platforms**
 - Instagram: Artist profile integration (@elarmuzik)
 - YouTube: Playlist embedding for music videos and content
+- Spotify, Apple Music, iTunes, Deezer: Music streaming platform links
 
 **Content Delivery**
 - DistroKid CDN: Album artwork hosting (imgix CDN for image optimization)
 - Album cover image served from: `distrokid.imgix.net` with query parameters for format (jpg) and quality optimization
 
 ### Asset Management
-- SVG icons embedded inline for social media links (Instagram, YouTube)
+- SVG icons embedded inline for social media links (Instagram, YouTube, Spotify, Apple Music, iTunes, Deezer)
 - No external icon libraries or font dependencies
 - Self-contained styling with no CSS framework dependencies (Bootstrap, Tailwind, etc.)
+- Album artwork stored locally in attached_assets directory
 
 ### Browser APIs Used
 - Scroll API: For smooth scrolling navigation
