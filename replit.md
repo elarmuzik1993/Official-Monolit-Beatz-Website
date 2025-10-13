@@ -17,6 +17,8 @@ Preferred communication style: Simple, everyday language.
 - Implemented accessible hamburger navigation menu using semantic <button> element with full keyboard support
 - Configured web server workflow to serve the static site on port 5000
 - Fixed image loading issues by using locally stored album artwork
+- Updated all branding from "Elar Music" to "Monolit Beatz" throughout the website
+- Fixed Apple Music social media icon display issue
 
 ## System Architecture
 
