@@ -67,18 +67,30 @@ cd "Official-Website Monolit Beatz"
 
 ### 2. YouTube API Configuration
 
-The site uses YouTube Data API v3 to fetch playlist data. The API key is already configured in `musicPlayer.js`:
+The site uses YouTube Data API v3 to fetch playlist data. The API key is configured in `musicPlayer.js`:
 
 ```javascript
-const YOUTUBE_API_KEY = 'AIzaSyAmIespZYAy6UzTtRi1pXHtkQuPv5O1b2s';
+const YOUTUBE_API_KEY = 'AIzaSyCxBqRgZkK3hlCz0AFoY2Ni5YtrP6bufsw';
 const PLAYLIST_ID = 'PL6JY_zJieinfhtDbw0g6ZwV2s2heGKoXB';
 ```
 
-**Security Recommendation**: For production, restrict the API key in Google Cloud Console:
-1. Go to Google Cloud Console > Credentials
-2. Select your API key
-3. Under "Application restrictions", choose "HTTP referrers"
-4. Add your domain: `https://yourusername.github.io/*`
+**IMPORTANT - API Key Security**: The API key is restricted by HTTP referrer in Google Cloud Console:
+
+1. **HTTP Referrer Restrictions** (Already configured):
+   - Go to [Google Cloud Console > Credentials](https://console.cloud.google.com/apis/credentials)
+   - Select your API key
+   - Under "Application restrictions", select "HTTP referrers (web sites)"
+   - Allowed referrers:
+     - `https://elarmuzik1993.github.io/*` (Production site)
+     - `http://localhost:*` (Local development)
+     - `http://127.0.0.1:*` (Local development)
+
+2. **API Restrictions** (Already configured):
+   - Under "API restrictions", select "Restrict key"
+   - Only "YouTube Data API v3" is enabled
+   - This prevents the key from being used for other Google services
+
+**Note**: It's normal for YouTube API keys to be visible in client-side JavaScript. HTTP referrer restrictions ensure the key only works from your authorized domains, even if someone copies it from your source code.
 
 ### 3. Local Development
 

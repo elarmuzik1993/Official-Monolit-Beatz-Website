@@ -1,6 +1,6 @@
 // ========== MUSIC PLAYER - YOUTUBE API INTEGRATION ==========
 
-const YOUTUBE_API_KEY = 'AIzaSyAmIespZYAy6UzTtRi1pXHtkQuPv5O1b2s';
+const YOUTUBE_API_KEY = 'AIzaSyCxBqRgZkK3hlCz0AFoY2Ni5YtrP6bufsw';
 const PLAYLIST_ID = 'PL6JY_zJieinfhtDbw0g6ZwV2s2heGKoXB';
 const MAX_RESULTS = 12;
 
