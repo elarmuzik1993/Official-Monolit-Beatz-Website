@@ -22,7 +22,8 @@ A modern, futuristic music portfolio website featuring an integrated YouTube mus
   - Serif: Playfair Display (section headers)
   - Sans-serif: Inter (body text)
 - **Glassmorphism**: Modern frosted glass effects on player components
-- **Scroll Animations**: Intersection Observer-powered fade-in effects
+- **Scroll Animations**: Bidirectional Intersection Observer-powered fade-in effects (triggers on scroll up and down)
+- **Hero Animation**: Music player slides down from top on page load
 - **Transparent Navigation**: Clean navbar that stays at top of page
 
 ### Sections
