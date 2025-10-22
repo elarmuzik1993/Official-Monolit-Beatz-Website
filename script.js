@@ -53,35 +53,76 @@ navLinks.forEach(link => {
     });
 });
 
-window.addEventListener('scroll', () => {
-    const navbar = document.getElementById('navbar');
-    if (window.scrollY > 100) {
-        navbar.style.background = 'rgba(10, 10, 10, 0.98)';
-    } else {
-        navbar.style.background = 'rgba(10, 10, 10, 0.95)';
-    }
-});
+// Navbar is now static at top (no scroll behavior needed)
 
+// Enhanced Intersection Observer for multiple elements
 const observerOptions = {
-    threshold: 0.1,
-    rootMargin: '0px 0px -100px 0px'
+    threshold: 0.15,
+    rootMargin: '0px 0px -80px 0px'
 };
 
-const observer = new IntersectionObserver((entries) => {
+const fadeInObserver = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
         if (entry.isIntersecting) {
-            entry.target.style.opacity = '1';
-            entry.target.style.transform = 'translateY(0)';
+            entry.target.classList.add('fade-in-visible');
         }
     });
 }, observerOptions);
 
+// Observe sections
 document.querySelectorAll('.section').forEach(section => {
-    section.style.opacity = '0';
-    section.style.transform = 'translateY(30px)';
-    section.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-    observer.observe(section);
+    section.classList.add('fade-in-element');
+    fadeInObserver.observe(section);
 });
+
+// Observe section titles
+document.querySelectorAll('.section-title').forEach(title => {
+    title.classList.add('fade-in-element', 'fade-in-delay-1');
+    fadeInObserver.observe(title);
+});
+
+// Observe cards (reviews, services)
+document.querySelectorAll('.review-card').forEach((card, index) => {
+    card.classList.add('fade-in-element', `fade-in-delay-${(index % 3) + 1}`);
+    fadeInObserver.observe(card);
+});
+
+document.querySelectorAll('.service-card').forEach((card, index) => {
+    card.classList.add('fade-in-element', `fade-in-delay-${(index % 3) + 1}`);
+    fadeInObserver.observe(card);
+});
+
+// Observe about content
+const aboutText = document.querySelector('.about-text');
+const aboutImage = document.querySelector('.about-image');
+if (aboutText) {
+    aboutText.classList.add('fade-in-element', 'fade-in-from-left');
+    fadeInObserver.observe(aboutText);
+}
+if (aboutImage) {
+    aboutImage.classList.add('fade-in-element', 'fade-in-from-right');
+    fadeInObserver.observe(aboutImage);
+}
+
+// Observe contact sections
+document.querySelectorAll('.contact-info, .contact-social').forEach((section, index) => {
+    section.classList.add('fade-in-element', `fade-in-delay-${index + 1}`);
+    fadeInObserver.observe(section);
+});
+
+// Observe music player
+const musicPlayerContainer = document.querySelector('.music-player-container');
+if (musicPlayerContainer) {
+    musicPlayerContainer.classList.add('fade-in-element', 'fade-in-scale');
+    fadeInObserver.observe(musicPlayerContainer);
+}
+
+// Observe social bar
+const socialBar = document.querySelector('.social-bar');
+if (socialBar) {
+    socialBar.classList.add('fade-in-element', 'fade-in-delay-2');
+    fadeInObserver.observe(socialBar);
+}
 
 document.querySelectorAll('a[href^="http"]').forEach(link => {
     link.setAttribute('rel', 'noopener noreferrer');

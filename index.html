@@ -26,18 +26,118 @@
     </nav>
 
     <section id="home" class="hero">
-        <div class="hero-content">
-            <h1>MONOLIT BEATZ</h1>
-            <p class="tagline">Original Music | Experimental Sounds | Visual Journeys</p>
-            <div class="latest-release">
-                <img src="attached_assets/red ghost 2 glo_1760362064230.png" alt="Humanity Last Beats Album Cover" class="album-cover">
-                <h3>Latest Album: Humanity Last Beats</h3>
+        <div class="music-player-container">
+            <!-- Loading State -->
+            <div id="loading-state" class="loading-state">
+                <div class="loader"></div>
+                <p>Loading your music...</p>
             </div>
-            <div class="cta-buttons">
-                <a href="#contact" class="btn btn-primary">Get In Touch</a>
-                <a href="#services" class="btn btn-secondary">Our Services</a>
+
+            <!-- Main Music Player -->
+            <div id="music-player" class="music-player" style="display: none;">
+                <!-- Album Art & Player Controls Section -->
+                <div class="player-main">
+                    <div class="album-art-container">
+                        <img id="current-album-art" src="attached_assets/red ghost 2 glo_1760362064230.png" alt="Album Cover" class="album-art">
+                        <div class="playing-indicator" id="playing-indicator" style="display: none;">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
+
+                    <div class="player-info">
+                        <h2 id="current-track-title" class="track-title">Select a track to play</h2>
+                        <p id="current-track-artist" class="track-artist">Monolit Beatz</p>
+                        <div id="current-track-meta" class="track-meta"></div>
+                    </div>
+
+                    <!-- Player Controls -->
+                    <div class="player-controls">
+                        <button id="shuffle-btn" class="control-btn shuffle-btn" aria-label="Shuffle" title="Shuffle">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/>
+                            </svg>
+                        </button>
+
+                        <button id="prev-btn" class="control-btn prev-btn" aria-label="Previous track">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
+                            </svg>
+                        </button>
+
+                        <button id="play-pause-btn" class="control-btn play-pause-btn" aria-label="Play">
+                            <svg id="play-icon" width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M8 5v14l11-7z"/>
+                            </svg>
+                            <svg id="pause-icon" width="32" height="32" viewBox="0 0 24 24" fill="currentColor" style="display: none;">
+                                <path d="M6 4h4v16H6zM14 4h4v16h-4z"/>
+                            </svg>
+                        </button>
+
+                        <button id="next-btn" class="control-btn next-btn" aria-label="Next track">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M16 18h2V6h-2zm-11-7l8.5-6v12z"/>
+                            </svg>
+                        </button>
+
+                        <button id="repeat-btn" class="control-btn repeat-btn" aria-label="Repeat" title="Repeat Off">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M17 1l4 4-4 4"/>
+                                <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+                                <path d="M7 23l-4-4 4-4"/>
+                                <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="progress-container">
+                        <span id="current-time" class="time">0:00</span>
+                        <div class="progress-bar" id="progress-bar">
+                            <div class="progress-fill" id="progress-fill"></div>
+                        </div>
+                        <span id="duration-time" class="time">0:00</span>
+                    </div>
+
+                    <!-- Volume Control -->
+                    <div class="volume-container">
+                        <button id="volume-btn" class="control-btn volume-btn" aria-label="Mute/Unmute">
+                            <svg id="volume-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
+                            </svg>
+                        </button>
+                        <div class="volume-slider-container">
+                            <input type="range" id="volume-slider" class="volume-slider" min="0" max="100" value="70" aria-label="Volume">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tracklist Section -->
+                <div class="tracklist-container">
+                    <div class="tracklist-header">
+                        <h3>Latest Releases</h3>
+                        <span id="track-count" class="track-count">0 tracks</span>
+                    </div>
+                    <div id="tracklist" class="tracklist">
+                        <!-- Tracks will be dynamically loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Error State -->
+            <div id="error-state" class="error-state" style="display: none;">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <h3>Unable to load tracks</h3>
+                <p id="error-message">Please try refreshing the page.</p>
             </div>
         </div>
+
+        <!-- Social Bar -->
         <div class="social-bar">
             <a href="https://www.instagram.com/monolitbeatz" target="_blank" rel="noopener" class="social-link" aria-label="Instagram">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
@@ -102,11 +202,6 @@
                     <div class="stars">★★★★★</div>
                     <p class="review-text">"Humanity Last Beats is a masterpiece! The perfect blend of creativity and technical skill. Can't wait for more releases!"</p>
                     <p class="reviewer">- Album Listener</p>
-                </div>
-                <div class="review-card">
-                    <div class="stars">★★★★★</div>
-                    <p class="review-text">"The guitar riffs are insane! Love the energy and passion in every track. Definitely one to watch in the music scene."</p>
-                    <p class="reviewer">- Guitar Fan</p>
                 </div>
             </div>
         </div>
@@ -196,6 +291,14 @@
         </div>
     </footer>
 
+    <!-- Hidden YouTube Player -->
+    <div id="youtube-player" style="display: none;"></div>
+
+    <!-- YouTube IFrame Player API -->
+    <script src="https://www.youtube.com/iframe_api"></script>
+
+    <!-- Main Scripts -->
     <script src="script.js"></script>
+    <script src="musicPlayer.js"></script>
 </body>
 </html>
