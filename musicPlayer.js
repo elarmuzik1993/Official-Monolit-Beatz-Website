@@ -159,13 +159,13 @@ async function fetchTracks() {
             const durationInfo = durationData.items ? durationData.items.find(v => v.id === videoId) : null;
             const duration = durationInfo ? parseDuration(durationInfo.contentDetails.duration) : 0;
 
+            // Use custom high-quality album art for all tracks
+            const thumbnailUrl = 'albumart.png';
+
             return {
                 id: videoId,
                 title: item.snippet.title,
-                thumbnail: item.snippet.thumbnails.maxres?.url ||
-                          item.snippet.thumbnails.high?.url ||
-                          item.snippet.thumbnails.medium?.url ||
-                          item.snippet.thumbnails.default?.url,
+                thumbnail: thumbnailUrl,
                 publishedAt: item.snippet.publishedAt,
                 duration: duration,
                 views: durationInfo ? parseInt(durationInfo.statistics.viewCount) : 0

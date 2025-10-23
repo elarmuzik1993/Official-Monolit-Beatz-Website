@@ -654,6 +654,7 @@ html {
     box-shadow: 0 20px 60px rgba(204, 0, 0, 0.6),
                 0 0 0 1px rgba(204, 0, 0, 0.2);
     background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+    image-rendering: -webkit-optimize-contrast;
 }
 
 .album-art {
@@ -662,11 +663,12 @@ html {
     object-fit: cover;
     object-position: center center;
     display: block;
-    image-rendering: -webkit-optimize-contrast;
-    image-rendering: crisp-edges;
+    image-rendering: auto;
+    -ms-interpolation-mode: bicubic;
     backface-visibility: hidden;
     transform: translateZ(0) scale(1.40);
     transform-origin: center center;
+    filter: none;
 }
 
 .playing-indicator {
