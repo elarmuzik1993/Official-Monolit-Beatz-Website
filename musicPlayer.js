@@ -404,6 +404,8 @@ function playTrack(index) {
 }
 
 function togglePlayPause() {
+    if (!player || !player.playVideo) return;
+
     if (isPlaying) {
         player.pauseVideo();
     } else {
