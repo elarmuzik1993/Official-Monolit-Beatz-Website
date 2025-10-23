@@ -1,8 +1,19 @@
 // ========== MUSIC PLAYER - YOUTUBE API INTEGRATION ==========
+//
+// PERFORMANCE & API QUOTA OPTIMIZATION:
+// This player implements localStorage caching to reduce YouTube API calls.
+// - Cache Duration: 24 hours (configurable via CACHE_DURATION)
+// - API calls only made when cache is empty or expired
+// - Fallback to stale cache if API fails (offline resilience)
+// - Saves ~2 API calls per page load for returning visitors
+// - Debug tools available: MusicPlayer.getCacheInfo(), MusicPlayer.refreshCache()
 
 const YOUTUBE_API_KEY = 'AIzaSyCxBqRgZkK3hlCz0AFoY2Ni5YtrP6bufsw';
 const PLAYLIST_ID = 'PL6JY_zJieinfhtDbw0g6ZwV2s2heGKoXB';
 const MAX_RESULTS = 12;
+const CACHE_DURATION = 1000 * 60 * 60 * 24; // 24 hours in milliseconds
+const CACHE_KEY = 'youtube_playlist_cache';
+const CACHE_TIMESTAMP_KEY = 'youtube_playlist_cache_timestamp';
 
 // Player State
 let player;
@@ -11,7 +22,7 @@ let currentTrackIndex = 0;
 let isPlaying = false;
 let isShuffle = false;
 let repeatMode = 'off'; // 'off', 'all', 'one'
-let currentVolume = 70;
+let currentVolume = 100;
 let progressInterval;
 
 // DOM Elements
@@ -54,10 +65,67 @@ function onYouTubeIframeAPIReady() {
 // Make it globally accessible for YouTube API
 window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
 
+// ========== CACHE MANAGEMENT ==========
+
+function getCachedPlaylist() {
+    try {
+        const cachedData = localStorage.getItem(CACHE_KEY);
+        const cacheTimestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY);
+
+        if (!cachedData || !cacheTimestamp) {
+            return null;
+        }
+
+        const timestamp = parseInt(cacheTimestamp);
+        const now = Date.now();
+
+        // Check if cache is still valid
+        if (now - timestamp > CACHE_DURATION) {
+            console.log('Cache expired, will fetch fresh data');
+            return null;
+        }
+
+        console.log('Using cached playlist data');
+        return JSON.parse(cachedData);
+    } catch (error) {
+        console.error('Error reading cache:', error);
+        return null;
+    }
+}
+
+function setCachedPlaylist(playlistData) {
+    try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify(playlistData));
+        localStorage.setItem(CACHE_TIMESTAMP_KEY, Date.now().toString());
+        console.log('Playlist cached successfully');
+    } catch (error) {
+        console.error('Error caching playlist:', error);
+    }
+}
+
+function clearPlaylistCache() {
+    localStorage.removeItem(CACHE_KEY);
+    localStorage.removeItem(CACHE_TIMESTAMP_KEY);
+    console.log('Cache cleared');
+}
+
 // ========== FETCH TRACKS FROM YOUTUBE PLAYLIST ==========
 
 async function fetchTracks() {
     try {
+        // Check cache first
+        const cachedPlaylist = getCachedPlaylist();
+
+        if (cachedPlaylist && cachedPlaylist.length > 0) {
+            playlist = cachedPlaylist;
+            initializePlayer();
+            renderTracklist();
+            hideLoading();
+            return;
+        }
+
+        console.log('Fetching fresh data from YouTube API...');
+
         // Fetch playlist items
         const url = `https://www.googleapis.com/youtube/v3/playlistItems?key=${YOUTUBE_API_KEY}&playlistId=${PLAYLIST_ID}&part=snippet&maxResults=${MAX_RESULTS}`;
 
@@ -78,12 +146,17 @@ async function fetchTracks() {
         const durationUrl = `https://www.googleapis.com/youtube/v3/videos?key=${YOUTUBE_API_KEY}&id=${videoIds}&part=contentDetails,statistics`;
 
         const durationResponse = await fetch(durationUrl);
+
+        if (!durationResponse.ok) {
+            throw new Error(`API Error: ${durationResponse.status}`);
+        }
+
         const durationData = await durationResponse.json();
 
         // Build playlist (maintain playlist order)
         playlist = data.items.map((item, index) => {
             const videoId = item.snippet.resourceId.videoId;
-            const durationInfo = durationData.items.find(v => v.id === videoId);
+            const durationInfo = durationData.items ? durationData.items.find(v => v.id === videoId) : null;
             const duration = durationInfo ? parseDuration(durationInfo.contentDetails.duration) : 0;
 
             return {
@@ -96,12 +169,31 @@ async function fetchTracks() {
             };
         });
 
+        // Cache the playlist data
+        setCachedPlaylist(playlist);
+
         initializePlayer();
         renderTracklist();
         hideLoading();
 
     } catch (error) {
         console.error('Error fetching tracks:', error);
+
+        // Try to use cached data as fallback even if expired
+        const cachedPlaylist = localStorage.getItem(CACHE_KEY);
+        if (cachedPlaylist) {
+            console.log('Using stale cache as fallback');
+            try {
+                playlist = JSON.parse(cachedPlaylist);
+                initializePlayer();
+                renderTracklist();
+                hideLoading();
+                return;
+            } catch (cacheError) {
+                console.error('Failed to parse cached data:', cacheError);
+            }
+        }
+
         showError(error.message);
     }
 }
@@ -416,7 +508,7 @@ function toggleMute() {
         updateVolume(0);
         volumeSlider.value = 0;
     } else {
-        const savedVolume = parseInt(localStorage.getItem('playerVolume')) || 70;
+        const savedVolume = parseInt(localStorage.getItem('playerVolume')) || 100;
         updateVolume(savedVolume);
         volumeSlider.value = savedVolume;
     }
@@ -612,6 +704,48 @@ if (savedVolume !== null) {
     currentVolume = savedVolume;
     volumeSlider.value = savedVolume;
 }
+
+// ========== EXPOSE CACHE MANAGEMENT FOR DEBUGGING ==========
+// Usage in browser console:
+// - MusicPlayer.refreshCache() - Clear cache and reload playlist
+// - MusicPlayer.clearCache() - Just clear the cache
+// - MusicPlayer.getCacheInfo() - Get cache status
+
+window.MusicPlayer = {
+    refreshCache: function() {
+        clearPlaylistCache();
+        location.reload();
+    },
+    clearCache: function() {
+        clearPlaylistCache();
+        console.log('Cache cleared. Reload page to fetch fresh data.');
+    },
+    getCacheInfo: function() {
+        const cacheTimestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY);
+        if (!cacheTimestamp) {
+            console.log('No cache found');
+            return { cached: false };
+        }
+        const timestamp = parseInt(cacheTimestamp);
+        const age = Date.now() - timestamp;
+        const ageHours = (age / (1000 * 60 * 60)).toFixed(2);
+        const ageMinutes = (age / (1000 * 60)).toFixed(0);
+        const expiresIn = CACHE_DURATION - age;
+        const expiresInHours = (expiresIn / (1000 * 60 * 60)).toFixed(2);
+
+        console.log(`Cache age: ${ageHours} hours (${ageMinutes} minutes)`);
+        console.log(`Expires in: ${expiresInHours} hours`);
+        console.log(`Cache valid: ${expiresIn > 0}`);
+
+        return {
+            cached: true,
+            ageMs: age,
+            ageHours: parseFloat(ageHours),
+            expiresInHours: parseFloat(expiresInHours),
+            valid: expiresIn > 0
+        };
+    }
+};
 
 // Initialize if YouTube API is already loaded
 if (window.YT && window.YT.Player) {
