@@ -162,7 +162,10 @@ async function fetchTracks() {
             return {
                 id: videoId,
                 title: item.snippet.title,
-                thumbnail: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.medium?.url || item.snippet.thumbnails.default?.url,
+                thumbnail: item.snippet.thumbnails.maxres?.url ||
+                          item.snippet.thumbnails.high?.url ||
+                          item.snippet.thumbnails.medium?.url ||
+                          item.snippet.thumbnails.default?.url,
                 publishedAt: item.snippet.publishedAt,
                 duration: duration,
                 views: durationInfo ? parseInt(durationInfo.statistics.viewCount) : 0
