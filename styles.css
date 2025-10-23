@@ -58,7 +58,7 @@ html {
 }
 
 #navbar {
-    position: absolute;
+    position: fixed;
     top: 0;
     width: 100%;
     background-color: transparent;
@@ -1071,13 +1071,13 @@ html {
     .nav-menu {
         position: fixed;
         left: -100%;
-        top: 70px;
+        top: 0;
         flex-direction: column;
         background-color: rgba(10, 10, 10, 0.98);
         width: 100%;
         text-align: center;
         transition: 0.3s;
-        padding: var(--spacing-lg) 0;
+        padding: 70px 0 var(--spacing-lg) 0;
         gap: 0;
     }
 
@@ -1193,7 +1193,7 @@ html {
 
     /* Hero section mobile spacing */
     .hero {
-        padding: var(--spacing-xl) var(--spacing-md) var(--spacing-lg);
+        padding: calc(80px + var(--spacing-md)) var(--spacing-md) var(--spacing-lg);
         min-height: auto;
     }
 
