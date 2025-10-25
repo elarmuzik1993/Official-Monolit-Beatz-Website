@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <!-- Notification Toast -->
+    <div id="notification-toast" class="notification-toast"></div>
     <nav id="navbar">
         <div class="nav-container">
             <div class="logo">MONOLIT BEATZ</div>
@@ -66,10 +68,10 @@
                         </button>
 
                         <button id="play-pause-btn" class="control-btn play-pause-btn" aria-label="Play">
-                            <svg id="play-icon" width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+                            <svg id="play-icon" width="32" height="32" viewBox="0 0 24 24" fill="currentColor" class="play-icon">
                                 <path d="M8 5v14l11-7z"/>
                             </svg>
-                            <svg id="pause-icon" width="32" height="32" viewBox="0 0 24 24" fill="currentColor" style="display: none;">
+                            <svg id="pause-icon" width="32" height="32" viewBox="0 0 24 24" fill="currentColor" class="pause-icon" style="display: none;">
                                 <path d="M6 4h4v16H6zM14 4h4v16h-4z"/>
                             </svg>
                         </button>

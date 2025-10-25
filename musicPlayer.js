@@ -20,10 +20,15 @@ let player;
 let playlist = [];
 let currentTrackIndex = 0;
 let isPlaying = false;
+let isBuffering = false;
 let isShuffle = false;
 let repeatMode = 'off'; // 'off', 'all', 'one'
 let currentVolume = 100;
 let progressInterval;
+let shuffleQueue = [];
+let shuffleHistory = [];
+let wasPlayingBeforeChange = false;
+let playerReady = false;
 
 // DOM Elements
 const loadingState = document.getElementById('loading-state');
@@ -226,27 +231,86 @@ function initializePlayer() {
         },
         events: {
             'onReady': onPlayerReady,
-            'onStateChange': onPlayerStateChange
+            'onStateChange': onPlayerStateChange,
+            'onError': onPlayerError
         }
     });
 }
 
 function onPlayerReady(event) {
+    playerReady = true;
     player.setVolume(currentVolume);
     updateCurrentTrack();
+    console.log('YouTube player ready');
 }
 
 function onPlayerStateChange(event) {
-    if (event.data === YT.PlayerState.ENDED) {
-        handleTrackEnd();
-    } else if (event.data === YT.PlayerState.PLAYING) {
-        isPlaying = true;
-        updatePlayPauseUI();
-        startProgressTracking();
-    } else if (event.data === YT.PlayerState.PAUSED) {
-        isPlaying = false;
-        updatePlayPauseUI();
-        stopProgressTracking();
+    console.log('Player state changed:', event.data);
+
+    // Remove loading state when player responds
+    playPauseBtn.classList.remove('loading');
+
+    switch(event.data) {
+        case YT.PlayerState.ENDED:
+            isPlaying = false;
+            isBuffering = false;
+            handleTrackEnd();
+            break;
+
+        case YT.PlayerState.PLAYING:
+            isPlaying = true;
+            isBuffering = false;
+            updatePlayPauseUI();
+            startProgressTracking();
+            break;
+
+        case YT.PlayerState.PAUSED:
+            isPlaying = false;
+            isBuffering = false;
+            updatePlayPauseUI();
+            stopProgressTracking();
+            break;
+
+        case YT.PlayerState.BUFFERING:
+            isBuffering = true;
+            playPauseBtn.classList.add('loading');
+            // Keep isPlaying state as it was
+            break;
+
+        case YT.PlayerState.CUED:
+            isPlaying = false;
+            isBuffering = false;
+            updatePlayPauseUI();
+            break;
+    }
+}
+
+// Handle player errors
+function onPlayerError(event) {
+    console.error('YouTube player error:', event.data);
+    isBuffering = false;
+    playPauseBtn.classList.remove('loading');
+
+    // Error codes: 2 (invalid param), 5 (HTML5 error), 100 (not found), 101/150 (not embeddable)
+    const errorCodes = {
+        2: 'Invalid video parameter',
+        5: 'HTML5 player error',
+        100: 'Video not found',
+        101: 'Video not allowed to be embedded',
+        150: 'Video not allowed to be embedded'
+    };
+
+    const errorMsg = errorCodes[event.data] || 'Unknown playback error';
+    console.error(errorMsg);
+
+    // Auto-skip to next track if video unavailable
+    if ([100, 101, 150].includes(event.data)) {
+        console.log('Auto-skipping unavailable video...');
+        setTimeout(() => {
+            if (currentTrackIndex < playlist.length - 1 || repeatMode === 'all') {
+                playNext();
+            }
+        }, 1000);
     }
 }
 
@@ -280,13 +344,28 @@ function updateCurrentTrack() {
 
 function updatePlayPauseUI() {
     if (isPlaying) {
+        playIcon.style.opacity = '0';
+        playIcon.style.transform = 'scale(0.8) rotate(90deg)';
         playIcon.style.display = 'none';
         pauseIcon.style.display = 'block';
+        // Trigger animation
+        setTimeout(() => {
+            pauseIcon.style.opacity = '1';
+            pauseIcon.style.transform = 'scale(1) rotate(0deg)';
+        }, 10);
         playPauseBtn.setAttribute('aria-label', 'Pause');
         albumArt.classList.add('playing');
         playingIndicator.style.display = 'flex';
     } else {
+        pauseIcon.style.opacity = '0';
+        pauseIcon.style.transform = 'scale(0.8) rotate(-90deg)';
+        pauseIcon.style.display = 'none';
         playIcon.style.display = 'block';
+        // Trigger animation
+        setTimeout(() => {
+            playIcon.style.opacity = '1';
+            playIcon.style.transform = 'scale(1) rotate(0deg)';
+        }, 10);
         pauseIcon.style.display = 'none';
         playPauseBtn.setAttribute('aria-label', 'Play');
         albumArt.classList.remove('playing');
@@ -396,39 +475,175 @@ function createTrackItem(track, index) {
 
 // ========== PLAYBACK CONTROLS ==========
 
-function playTrack(index) {
-    currentTrackIndex = index;
-    player.loadVideoById(playlist[index].id);
-    player.playVideo();
-    updateCurrentTrack();
+// Volume fade utility
+let fadingVolume = false;
+
+function fadeVolume(targetVolume, duration = 500) {
+    if (fadingVolume || !player || !playerReady) return;
+
+    fadingVolume = true;
+    const startVolume = player.getVolume();
+    const volumeDiff = targetVolume - startVolume;
+    const steps = 20;
+    const stepDuration = duration / steps;
+    let currentStep = 0;
+
+    const fadeInterval = setInterval(() => {
+        currentStep++;
+        const progress = currentStep / steps;
+        // Ease-in-out curve for smooth fade
+        const easedProgress = progress < 0.5
+            ? 2 * progress * progress
+            : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+
+        const newVolume = startVolume + (volumeDiff * easedProgress);
+        player.setVolume(newVolume);
+
+        if (currentStep >= steps) {
+            clearInterval(fadeInterval);
+            player.setVolume(targetVolume);
+            fadingVolume = false;
+        }
+    }, stepDuration);
+}
+
+// Smart shuffle using Fisher-Yates algorithm
+function generateShuffleQueue() {
+    shuffleQueue = [...Array(playlist.length).keys()];
+
+    // Fisher-Yates shuffle
+    for (let i = shuffleQueue.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffleQueue[i], shuffleQueue[j]] = [shuffleQueue[j], shuffleQueue[i]];
+    }
+
+    // Move current track to front to avoid immediate repeat
+    const currentIndex = shuffleQueue.indexOf(currentTrackIndex);
+    if (currentIndex > 0) {
+        shuffleQueue.splice(currentIndex, 1);
+        shuffleQueue.unshift(currentTrackIndex);
+    }
+
+    console.log('Shuffle queue generated:', shuffleQueue);
+}
+
+function getNextShuffleTrack() {
+    // Add current to history
+    if (!shuffleHistory.includes(currentTrackIndex)) {
+        shuffleHistory.push(currentTrackIndex);
+    }
+
+    // Generate new queue if empty
+    if (shuffleQueue.length === 0) {
+        generateShuffleQueue();
+        shuffleHistory = []; // Reset history on new queue
+    }
+
+    // Get next from queue
+    let nextIndex = shuffleQueue.shift();
+
+    // Avoid immediate repeat of current track
+    if (nextIndex === currentTrackIndex && shuffleQueue.length > 0) {
+        shuffleQueue.push(nextIndex); // Move to end
+        nextIndex = shuffleQueue.shift();
+    }
+
+    return nextIndex;
+}
+
+function getPreviousShuffleTrack() {
+    // Go back in history if available
+    if (shuffleHistory.length > 1) {
+        shuffleHistory.pop(); // Remove current
+        const prevIndex = shuffleHistory[shuffleHistory.length - 1];
+        shuffleQueue.unshift(currentTrackIndex); // Put current back in queue
+        return prevIndex;
+    }
+
+    // No history, just return a random track
+    return Math.floor(Math.random() * playlist.length);
+}
+
+function playTrack(index, preservePlayState = false) {
+    if (!player || !playerReady) {
+        console.warn('Player not ready yet');
+        return;
+    }
+
+    // Preserve current play state if requested
+    if (preservePlayState) {
+        wasPlayingBeforeChange = isPlaying;
+    }
+
+    // Fade out before track change if currently playing
+    if (isPlaying && currentVolume > 0) {
+        fadeVolume(0, 300);
+        setTimeout(() => {
+            currentTrackIndex = index;
+            player.loadVideoById(playlist[index].id);
+
+            // Only autoplay if preserving state and was playing, or if not preserving state
+            if (!preservePlayState || wasPlayingBeforeChange) {
+                player.playVideo();
+                // Fade back in after track loads
+                setTimeout(() => fadeVolume(currentVolume, 400), 200);
+            }
+
+            updateCurrentTrack();
+        }, 350);
+    } else {
+        // No fade needed if not playing or volume is 0
+        currentTrackIndex = index;
+        player.loadVideoById(playlist[index].id);
+
+        // Only autoplay if preserving state and was playing, or if not preserving state
+        if (!preservePlayState || wasPlayingBeforeChange) {
+            player.playVideo();
+        }
+
+        updateCurrentTrack();
+    }
 }
 
 function togglePlayPause() {
     if (!player || !player.playVideo) return;
 
+    // Add loading state briefly for visual feedback
+    playPauseBtn.classList.add('loading');
+
     if (isPlaying) {
         player.pauseVideo();
+        // Remove loading state after brief delay
+        setTimeout(() => playPauseBtn.classList.remove('loading'), 150);
     } else {
         player.playVideo();
+        // Remove loading state after brief delay
+        setTimeout(() => playPauseBtn.classList.remove('loading'), 150);
     }
 }
 
 function playPrevious() {
+    let nextIndex;
+
     if (isShuffle) {
-        currentTrackIndex = Math.floor(Math.random() * playlist.length);
+        nextIndex = getPreviousShuffleTrack();
     } else {
-        currentTrackIndex = (currentTrackIndex - 1 + playlist.length) % playlist.length;
+        nextIndex = (currentTrackIndex - 1 + playlist.length) % playlist.length;
     }
-    playTrack(currentTrackIndex);
+
+    playTrack(nextIndex, true); // Preserve play state
 }
 
 function playNext() {
+    let nextIndex;
+
     if (isShuffle) {
-        currentTrackIndex = Math.floor(Math.random() * playlist.length);
+        nextIndex = getNextShuffleTrack();
     } else {
-        currentTrackIndex = (currentTrackIndex + 1) % playlist.length;
+        nextIndex = (currentTrackIndex + 1) % playlist.length;
     }
-    playTrack(currentTrackIndex);
+
+    playTrack(nextIndex, true); // Preserve play state
 }
 
 function handleTrackEnd() {
@@ -447,6 +662,17 @@ function toggleShuffle() {
     isShuffle = !isShuffle;
     shuffleBtn.classList.toggle('active', isShuffle);
     shuffleBtn.title = isShuffle ? 'Shuffle On' : 'Shuffle Off';
+
+    // Generate shuffle queue when enabling shuffle
+    if (isShuffle) {
+        generateShuffleQueue();
+        showNotification('🔀 Shuffle: ON');
+    } else {
+        // Clear shuffle state when disabling
+        shuffleQueue = [];
+        shuffleHistory = [];
+        showNotification('🔀 Shuffle: OFF');
+    }
 }
 
 function toggleRepeat() {
@@ -461,18 +687,36 @@ function toggleRepeat() {
         'all': 'Repeat All',
         'one': 'Repeat One'
     };
+    const notifications = {
+        'off': '🔁 Repeat: OFF',
+        'all': '🔁 Repeat: ALL',
+        'one': '🔁 Repeat: ONE'
+    };
     repeatBtn.title = titles[repeatMode];
+    showNotification(notifications[repeatMode]);
 }
 
 // ========== PROGRESS TRACKING ==========
 
 function startProgressTracking() {
+    // Always stop any existing interval first to prevent race conditions
     stopProgressTracking();
+
     progressInterval = setInterval(() => {
-        if (player && player.getCurrentTime) {
-            const current = player.getCurrentTime();
-            const duration = player.getDuration();
-            updateProgress(current, duration);
+        // Safety check: ensure player exists and is ready
+        if (player && playerReady && player.getCurrentTime && player.getDuration) {
+            try {
+                const current = player.getCurrentTime();
+                const duration = player.getDuration();
+
+                // Only update if values are valid
+                if (isFinite(current) && isFinite(duration) && duration > 0) {
+                    updateProgress(current, duration);
+                }
+            } catch (error) {
+                console.error('Progress tracking error:', error);
+                stopProgressTracking();
+            }
         }
     }, 100);
 }
@@ -649,56 +893,152 @@ document.addEventListener('click', (e) => {
     }
 });
 
-// Keyboard shortcuts
+// ========== NOTIFICATION SYSTEM ==========
+const notificationToast = document.getElementById('notification-toast');
+let notificationTimeout;
+
+function showNotification(message, duration = 2000) {
+    // Clear any existing timeout
+    if (notificationTimeout) {
+        clearTimeout(notificationTimeout);
+    }
+
+    notificationToast.textContent = message;
+    notificationToast.classList.add('show');
+
+    notificationTimeout = setTimeout(() => {
+        notificationToast.classList.remove('show');
+    }, duration);
+}
+
+// ========== KEYBOARD SHORTCUTS ==========
 document.addEventListener('keydown', (e) => {
-    if (e.target.tagName === 'INPUT') return;
+    // Don't trigger shortcuts when typing in input fields or textareas
+    const activeElement = document.activeElement;
+    const isTyping = activeElement && (
+        activeElement.tagName === 'INPUT' ||
+        activeElement.tagName === 'TEXTAREA' ||
+        activeElement.isContentEditable
+    );
+
+    if (isTyping) return;
+
+    // Don't handle shortcuts if player isn't ready
+    if (!playerReady && e.key !== ' ' && !e.key.startsWith('Arrow')) {
+        return;
+    }
+
+    const handled = true;
 
     switch(e.key) {
         case ' ':
             e.preventDefault();
             togglePlayPause();
             break;
+
+        // Seek backward (5 seconds)
         case 'ArrowLeft':
+        case 'j':
+        case 'J':
             e.preventDefault();
-            if (player && player.getCurrentTime) {
-                player.seekTo(player.getCurrentTime() - 5);
+            if (player && playerReady && player.getCurrentTime) {
+                const newTime = Math.max(0, player.getCurrentTime() - 5);
+                player.seekTo(newTime);
             }
             break;
+
+        // Seek forward (5 seconds)
         case 'ArrowRight':
+        case 'l':
+        case 'L':
             e.preventDefault();
-            if (player && player.getCurrentTime) {
-                player.seekTo(player.getCurrentTime() + 5);
+            if (player && playerReady && player.getCurrentTime && player.getDuration) {
+                const newTime = Math.min(player.getDuration(), player.getCurrentTime() + 5);
+                player.seekTo(newTime);
             }
             break;
+
+        // Volume up
         case 'ArrowUp':
             e.preventDefault();
             volumeSlider.value = Math.min(100, parseInt(volumeSlider.value) + 10);
             updateVolume(parseInt(volumeSlider.value));
             break;
+
+        // Volume down
         case 'ArrowDown':
             e.preventDefault();
             volumeSlider.value = Math.max(0, parseInt(volumeSlider.value) - 10);
             updateVolume(parseInt(volumeSlider.value));
             break;
+
+        // Mute/Unmute
         case 'm':
         case 'M':
+            e.preventDefault();
             toggleMute();
             break;
+
+        // Next track
         case 'n':
         case 'N':
+            e.preventDefault();
             playNext();
             break;
+
+        // Previous track
         case 'p':
         case 'P':
+            e.preventDefault();
             playPrevious();
             break;
+
+        // Toggle shuffle
         case 's':
         case 'S':
+            e.preventDefault();
             toggleShuffle();
             break;
+
+        // Toggle repeat
         case 'r':
         case 'R':
+            e.preventDefault();
             toggleRepeat();
+            break;
+
+        // Number keys (0-9) for volume percentage
+        case '0':
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+        case '6':
+        case '7':
+        case '8':
+        case '9':
+            e.preventDefault();
+            const volumePercent = parseInt(e.key) * 10;
+            volumeSlider.value = volumePercent;
+            updateVolume(volumePercent);
+            showNotification(`🔊 Volume: ${volumePercent}%`, 1000);
+            break;
+
+        // Skip to beginning (Home key)
+        case 'Home':
+            e.preventDefault();
+            if (player && playerReady) {
+                player.seekTo(0);
+            }
+            break;
+
+        // Skip to end (End key) - useful for testing track end behavior
+        case 'End':
+            e.preventDefault();
+            if (player && playerReady && player.getDuration) {
+                player.seekTo(player.getDuration() - 1);
+            }
             break;
     }
 });

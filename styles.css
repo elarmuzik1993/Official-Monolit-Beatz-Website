@@ -767,15 +767,90 @@ html {
     background: var(--gradient-1);
     width: 64px;
     height: 64px;
-    box-shadow: 0 5px 20px rgba(204, 0, 0, 0.5);
+    box-shadow: 0 5px 20px rgba(204, 0, 0, 0.5),
+                0 0 40px rgba(204, 0, 0, 0.3),
+                inset 0 0 20px rgba(255, 255, 255, 0.1);
     color: var(--light-text);
+    position: relative;
+    overflow: hidden;
+}
+
+.play-pause-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s ease;
+}
+
+.play-pause-btn:hover::before {
+    left: 100%;
 }
 
 .play-pause-btn:hover {
-    transform: scale(1.1);
-    box-shadow: 0 8px 30px rgba(204, 0, 0, 0.7);
+    transform: scale(1.15);
+    box-shadow: 0 8px 35px rgba(204, 0, 0, 0.8),
+                0 0 60px rgba(204, 0, 0, 0.5),
+                0 0 100px rgba(204, 0, 0, 0.3),
+                inset 0 0 30px rgba(255, 255, 255, 0.15);
     color: var(--light-text);
     background: var(--primary-color);
+}
+
+.play-pause-btn:active {
+    transform: scale(1.05);
+    box-shadow: 0 3px 15px rgba(204, 0, 0, 0.6),
+                0 0 30px rgba(204, 0, 0, 0.4);
+}
+
+.play-pause-btn svg {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.play-pause-btn:hover svg {
+    transform: scale(1.1);
+    filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5));
+}
+
+.play-pause-btn.loading {
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.play-pause-btn.loading svg {
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.5;
+        transform: scale(0.95);
+    }
+}
+
+/* Play/Pause icon transitions */
+.play-pause-btn .play-icon,
+.play-pause-btn .pause-icon {
+    position: absolute;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.play-pause-btn .play-icon {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+}
+
+.play-pause-btn .pause-icon {
+    opacity: 0;
+    transform: scale(0.8) rotate(-90deg);
 }
 
 .shuffle-btn.active,
@@ -1499,5 +1574,43 @@ html {
     .social-link svg {
         width: 20px;
         height: 20px;
+    }
+}
+
+/* ========== NOTIFICATION TOAST ========== */
+.notification-toast {
+    position: fixed;
+    bottom: 100px;
+    right: 20px;
+    background: rgba(10, 10, 10, 0.95);
+    border: 2px solid var(--primary-color);
+    border-radius: 8px;
+    padding: var(--spacing-sm) var(--spacing-md);
+    color: var(--light-text);
+    font-family: var(--font-sans);
+    font-size: 0.9rem;
+    box-shadow: 0 4px 20px rgba(204, 0, 0, 0.4),
+                0 0 40px rgba(204, 0, 0, 0.2);
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+    z-index: 10000;
+    max-width: 300px;
+}
+
+.notification-toast.show {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: all;
+}
+
+@media (max-width: 768px) {
+    .notification-toast {
+        bottom: 80px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+        font-size: 0.85rem;
     }
 }
