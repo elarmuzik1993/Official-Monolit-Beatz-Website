@@ -99,6 +99,26 @@ html {
     color: var(--primary-color);
     letter-spacing: 0.15em;
     text-shadow: 0 0 20px rgba(204, 0, 0, 0.4);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.logo:hover {
+    animation: shake 0.5s ease-in-out;
+    text-shadow: 0 0 30px rgba(204, 0, 0, 0.6),
+                 0 0 50px rgba(204, 0, 0, 0.4);
+}
+
+@keyframes shake {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    10%, 30%, 50%, 70%, 90% {
+        transform: translateX(-1px);
+    }
+    20%, 40%, 60%, 80% {
+        transform: translateX(1px);
+    }
 }
 
 .nav-menu {
