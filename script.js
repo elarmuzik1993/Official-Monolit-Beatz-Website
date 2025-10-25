@@ -129,3 +129,52 @@ if (socialBar) {
 document.querySelectorAll('a[href^="http"]').forEach(link => {
     link.setAttribute('rel', 'noopener noreferrer');
 });
+
+// ========== ABOUT SECTION SLIDESHOW ==========
+let currentSlideIndex = 0;
+let slideInterval;
+
+function showSlide(index) {
+    const slides = document.querySelectorAll('.slide');
+    const dots = document.querySelectorAll('.dot');
+
+    if (!slides.length) return;
+
+    // Wrap around
+    if (index >= slides.length) currentSlideIndex = 0;
+    if (index < 0) currentSlideIndex = slides.length - 1;
+    else currentSlideIndex = index;
+
+    // Hide all slides
+    slides.forEach(slide => slide.classList.remove('active'));
+    dots.forEach(dot => dot.classList.remove('active'));
+
+    // Show current slide
+    slides[currentSlideIndex].classList.add('active');
+    dots[currentSlideIndex].classList.add('active');
+}
+
+function currentSlide(index) {
+    showSlide(index - 1);
+    // Reset auto-advance timer
+    clearInterval(slideInterval);
+    startSlideshow();
+}
+
+function nextSlide() {
+    showSlide(currentSlideIndex + 1);
+}
+
+function startSlideshow() {
+    // Auto-advance every 5 seconds
+    slideInterval = setInterval(nextSlide, 5000);
+}
+
+// Initialize slideshow when page loads
+if (document.querySelector('.slideshow-container')) {
+    showSlide(0);
+    startSlideshow();
+}
+
+// Make currentSlide function globally accessible for onclick
+window.currentSlide = currentSlide;

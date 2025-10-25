@@ -355,9 +355,32 @@ html {
     align-items: center;
 }
 
-.profile-img {
+.slideshow-container {
+    position: relative;
     width: 100%;
     max-width: 350px;
+}
+
+.slide {
+    display: none;
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+.slide.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.profile-img {
+    width: 100%;
     border-radius: 15px;
     box-shadow: 0 10px 50px rgba(204, 0, 0, 0.4),
                 0 0 80px rgba(204, 0, 0, 0.3),
@@ -370,6 +393,34 @@ html {
                 0 0 100px rgba(204, 0, 0, 0.4),
                 0 0 150px rgba(204, 0, 0, 0.3);
     transform: scale(1.02);
+}
+
+.slideshow-dots {
+    text-align: center;
+    padding-top: 15px;
+}
+
+.dot {
+    cursor: pointer;
+    height: 12px;
+    width: 12px;
+    margin: 0 5px;
+    background-color: rgba(204, 0, 0, 0.3);
+    border: 2px solid rgba(204, 0, 0, 0.5);
+    border-radius: 50%;
+    display: inline-block;
+    transition: all 0.3s ease;
+}
+
+.dot:hover {
+    background-color: rgba(204, 0, 0, 0.6);
+    border-color: rgba(204, 0, 0, 0.8);
+}
+
+.dot.active {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    box-shadow: 0 0 10px rgba(204, 0, 0, 0.6);
 }
 
 .reviews-section {
