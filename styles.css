@@ -793,6 +793,15 @@ html {
     color: var(--light-text);
     position: relative;
     overflow: hidden;
+    outline: none !important;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.play-pause-btn:focus {
+    outline: none !important;
+    box-shadow: 0 5px 20px rgba(204, 0, 0, 0.5),
+                0 0 40px rgba(204, 0, 0, 0.3),
+                inset 0 0 20px rgba(255, 255, 255, 0.1);
 }
 
 .play-pause-btn::before {
@@ -818,12 +827,14 @@ html {
                 inset 0 0 30px rgba(255, 255, 255, 0.15);
     color: var(--light-text);
     background: var(--primary-color);
+    outline: none !important;
 }
 
 .play-pause-btn:active {
     transform: scale(1.05);
     box-shadow: 0 3px 15px rgba(204, 0, 0, 0.6),
                 0 0 30px rgba(204, 0, 0, 0.4);
+    outline: none !important;
 }
 
 .play-pause-btn svg {
