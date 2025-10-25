@@ -590,6 +590,9 @@ function playTrack(index, preservePlayState = false) {
         wasPlayingBeforeChange = isPlaying;
     }
 
+    // Stop looper when changing tracks (it will restart when new track plays)
+    stopLooper();
+
     // Fade out before track change if currently playing
     if (isPlaying && currentVolume > 0) {
         fadeVolume(0, 300);
@@ -730,24 +733,27 @@ function startLooper() {
 
     if (looperMode === 'off') return;
 
-    // Set loop start point to current time
+    // Capture loop start point ONLY ONCE when activated
     loopStartTime = player.getCurrentTime();
     loopDuration = calculateBarDuration(looperMode);
 
-    console.log(`Looper started: ${looperMode} bar = ${loopDuration.toFixed(3)}s`);
+    // Fix the loop endpoints - these will NOT change
+    const fixedLoopEnd = loopStartTime + loopDuration;
 
-    // Check loop every 50ms for precision
+    console.log(`Loop fixed: ${loopStartTime.toFixed(3)}s to ${fixedLoopEnd.toFixed(3)}s (${looperMode} bar = ${loopDuration.toFixed(3)}s)`);
+
+    // Check loop every 25ms for tighter precision (reduced from 50ms)
     looperInterval = setInterval(() => {
         if (!player || !playerReady) return;
 
         const currentTime = player.getCurrentTime();
-        const loopEndTime = loopStartTime + loopDuration;
 
-        // If we've passed the loop end point, jump back
-        if (currentTime >= loopEndTime) {
+        // Use the FIXED loop end point to prevent drift
+        if (currentTime >= fixedLoopEnd) {
             player.seekTo(loopStartTime, true);
+            console.log(`Looped back to ${loopStartTime.toFixed(3)}s`);
         }
-    }, 50);
+    }, 25);
 }
 
 function stopLooper() {
@@ -835,6 +841,11 @@ function seekTo(event) {
     const duration = player.getDuration();
     const seekTime = duration * percentage;
     player.seekTo(seekTime);
+
+    // If looper is active, restart the loop from new position
+    if (looperMode !== 'off' && isPlaying) {
+        startLooper();
+    }
 }
 
 // ========== VOLUME CONTROL ==========
