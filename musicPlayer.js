@@ -368,6 +368,13 @@ function updatePlayPauseUI() {
         playIcon.style.transform = 'scale(0.8) rotate(90deg)';
         playIcon.style.display = 'none';
         pauseIcon.style.display = 'block';
+
+        // Add playing class to active track for volume meter animation
+        document.querySelectorAll('.track-item').forEach((item, index) => {
+            if (index === currentTrackIndex) {
+                item.classList.add('playing');
+            }
+        });
         // Trigger animation
         setTimeout(() => {
             pauseIcon.style.opacity = '1';
@@ -381,6 +388,12 @@ function updatePlayPauseUI() {
         pauseIcon.style.transform = 'scale(0.8) rotate(-90deg)';
         pauseIcon.style.display = 'none';
         playIcon.style.display = 'block';
+
+        // Remove playing class from all tracks when paused
+        document.querySelectorAll('.track-item').forEach(item => {
+            item.classList.remove('playing');
+        });
+
         // Trigger animation
         setTimeout(() => {
             playIcon.style.opacity = '1';
@@ -413,6 +426,9 @@ function createTrackItem(track, index) {
     const trackNumber = String(index + 1).padStart(2, '0');
 
     div.innerHTML = `
+        <div class="volume-meter">
+            <div class="meter-line"></div>
+        </div>
         <div class="track-number">${trackNumber}</div>
         <div class="track-info">
             <div class="track-name">${track.title}</div>
