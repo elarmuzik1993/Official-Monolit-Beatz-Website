@@ -836,17 +836,80 @@ function updateProgress(current, duration) {
     currentTime.textContent = formatTime(Math.floor(current));
 }
 
+// Scrubbing state
+let isScrubbing = false;
+let wasPlayingBeforeScrub = false;
+
 function seekTo(event) {
     const rect = progressBar.getBoundingClientRect();
     const clickX = event.clientX - rect.left;
-    const percentage = clickX / rect.width;
+    const percentage = Math.max(0, Math.min(1, clickX / rect.width));
     const duration = player.getDuration();
     const seekTime = duration * percentage;
-    player.seekTo(seekTime);
+    player.seekTo(seekTime, true);
 
     // If looper is active, restart the loop from new position
     if (looperMode !== 'off' && isPlaying) {
         startLooper();
+    }
+}
+
+function startScrubbing(event) {
+    if (!player || !playerReady) return;
+
+    isScrubbing = true;
+    wasPlayingBeforeScrub = isPlaying;
+
+    // Pause during scrubbing for better performance
+    if (isPlaying) {
+        player.pauseVideo();
+    }
+
+    // Stop looper while scrubbing
+    stopLooper();
+
+    // Seek to initial position
+    seekTo(event);
+
+    // Add document-level listeners for smooth dragging
+    document.addEventListener('mousemove', onScrubMove);
+    document.addEventListener('mouseup', stopScrubbing);
+}
+
+function onScrubMove(event) {
+    if (!isScrubbing) return;
+
+    const rect = progressBar.getBoundingClientRect();
+    const clickX = event.clientX - rect.left;
+    const percentage = Math.max(0, Math.min(1, clickX / rect.width));
+    const duration = player.getDuration();
+    const seekTime = duration * percentage;
+
+    // Update progress bar visually
+    progressFill.style.width = `${percentage * 100}%`;
+    currentTime.textContent = formatTime(Math.floor(seekTime));
+
+    // Seek to position
+    player.seekTo(seekTime, true);
+}
+
+function stopScrubbing() {
+    if (!isScrubbing) return;
+
+    isScrubbing = false;
+
+    // Remove document-level listeners
+    document.removeEventListener('mousemove', onScrubMove);
+    document.removeEventListener('mouseup', stopScrubbing);
+
+    // Resume playback if it was playing before
+    if (wasPlayingBeforeScrub) {
+        player.playVideo();
+
+        // Restart looper if it was active
+        if (looperMode !== 'off') {
+            startLooper();
+        }
     }
 }
 
@@ -986,7 +1049,8 @@ shuffleBtn.addEventListener('click', toggleShuffle);
 repeatBtn.addEventListener('click', toggleRepeat);
 looperBtn.addEventListener('click', toggleLooper);
 
-progressBar.addEventListener('click', seekTo);
+// Enable scrubbing with mousedown for drag-to-seek functionality
+progressBar.addEventListener('mousedown', startScrubbing);
 
 volumeSlider.addEventListener('input', (e) => {
     updateVolume(parseInt(e.target.value));
@@ -1113,6 +1177,13 @@ document.addEventListener('keydown', (e) => {
         case 'R':
             e.preventDefault();
             toggleRepeat();
+            break;
+
+        // Toggle looper
+        case 'o':
+        case 'O':
+            e.preventDefault();
+            toggleLooper();
             break;
 
         // Number keys (0-9) for volume percentage
