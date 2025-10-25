@@ -31,7 +31,7 @@ let wasPlayingBeforeChange = false;
 let playerReady = false;
 
 // DJ Looper state
-let looperMode = 'off'; // 'off', '1/32', '1/16', '1/8', '1/4'
+let looperMode = 'off'; // 'off', '1/64', '1/32', '1/16', '1/8', '1/4'
 let looperInterval;
 let loopStartTime = 0;
 let loopDuration = 0;
@@ -764,7 +764,7 @@ function stopLooper() {
 }
 
 function toggleLooper() {
-    const modes = ['off', '1/32', '1/16', '1/8', '1/4'];
+    const modes = ['off', '1/64', '1/32', '1/16', '1/8', '1/4'];
     const currentIndex = modes.indexOf(looperMode);
     looperMode = modes[(currentIndex + 1) % modes.length];
 
@@ -773,6 +773,7 @@ function toggleLooper() {
 
     const titles = {
         'off': 'Looper Off',
+        '1/64': 'Loop 1/64 Bar',
         '1/32': 'Loop 1/32 Bar',
         '1/16': 'Loop 1/16 Bar',
         '1/8': 'Loop 1/8 Bar',
@@ -780,6 +781,7 @@ function toggleLooper() {
     };
     const notifications = {
         'off': '🔄 Looper: OFF',
+        '1/64': '🔄 Looper: 1/64 Bar',
         '1/32': '🔄 Looper: 1/32 Bar',
         '1/16': '🔄 Looper: 1/16 Bar',
         '1/8': '🔄 Looper: 1/8 Bar',
