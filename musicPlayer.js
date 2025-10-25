@@ -22,7 +22,7 @@ let currentTrackIndex = 0;
 let isPlaying = false;
 let isBuffering = false;
 let isShuffle = false;
-let repeatMode = 'off'; // 'off', 'all', 'one'
+let repeatMode = 'all'; // 'off', 'all', 'one' - Default to 'all'
 let currentVolume = 100;
 let progressInterval;
 let shuffleQueue = [];
@@ -250,6 +250,11 @@ function onPlayerReady(event) {
     playerReady = true;
     player.setVolume(currentVolume);
     updateCurrentTrack();
+
+    // Set repeat button UI to active by default (since repeatMode is 'all')
+    repeatBtn.classList.add('active');
+    repeatBtn.title = 'Repeat: All Tracks';
+
     console.log('YouTube player ready');
 }
 
