@@ -1707,7 +1707,7 @@ html {
 
 @media (max-width: 768px) {
     .keyboard-shortcuts-help {
-        padding: var(--spacing-xs) var(--spacing-sm);
+        display: none;
     }
 
     .shortcuts-title {
