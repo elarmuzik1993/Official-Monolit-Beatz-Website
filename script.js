@@ -140,10 +140,14 @@ function showSlide(index) {
 
     if (!slides.length) return;
 
-    // Wrap around
-    if (index >= slides.length) currentSlideIndex = 0;
-    if (index < 0) currentSlideIndex = slides.length - 1;
-    else currentSlideIndex = index;
+    // Wrap around for endless loop
+    if (index >= slides.length) {
+        currentSlideIndex = 0;
+    } else if (index < 0) {
+        currentSlideIndex = slides.length - 1;
+    } else {
+        currentSlideIndex = index;
+    }
 
     // Hide all slides
     slides.forEach(slide => slide.classList.remove('active'));
