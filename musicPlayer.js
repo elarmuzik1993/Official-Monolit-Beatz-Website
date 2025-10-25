@@ -30,6 +30,13 @@ let shuffleHistory = [];
 let wasPlayingBeforeChange = false;
 let playerReady = false;
 
+// DJ Looper state
+let looperMode = 'off'; // 'off', '1/32', '1/16', '1/8', '1/4'
+let looperInterval;
+let loopStartTime = 0;
+let loopDuration = 0;
+const BPM = 120; // Default BPM, can be adjusted
+
 // DOM Elements
 const loadingState = document.getElementById('loading-state');
 const musicPlayer = document.getElementById('music-player');
@@ -49,6 +56,8 @@ const prevBtn = document.getElementById('prev-btn');
 const nextBtn = document.getElementById('next-btn');
 const shuffleBtn = document.getElementById('shuffle-btn');
 const repeatBtn = document.getElementById('repeat-btn');
+const looperBtn = document.getElementById('looper-btn');
+const looperLabel = document.querySelector('.looper-label');
 
 const progressBar = document.getElementById('progress-bar');
 const progressFill = document.getElementById('progress-fill');
@@ -262,6 +271,10 @@ function onPlayerStateChange(event) {
             isBuffering = false;
             updatePlayPauseUI();
             startProgressTracking();
+            // Start looper if it's enabled
+            if (looperMode !== 'off') {
+                startLooper();
+            }
             break;
 
         case YT.PlayerState.PAUSED:
@@ -269,6 +282,8 @@ function onPlayerStateChange(event) {
             isBuffering = false;
             updatePlayPauseUI();
             stopProgressTracking();
+            // Stop looper when paused
+            stopLooper();
             break;
 
         case YT.PlayerState.BUFFERING:
@@ -696,6 +711,85 @@ function toggleRepeat() {
     showNotification(notifications[repeatMode]);
 }
 
+// ========== DJ LOOPER ==========
+
+function calculateBarDuration(fraction) {
+    // Calculate duration of one bar at given BPM (4 beats per bar)
+    const secondsPerBeat = 60 / BPM;
+    const secondsPerBar = secondsPerBeat * 4;
+
+    // fraction is like '1/32', '1/16', etc.
+    const denominator = parseInt(fraction.split('/')[1]);
+    return (secondsPerBar / denominator) * 4; // *4 because we're measuring in bars not beats
+}
+
+function startLooper() {
+    if (!player || !playerReady) return;
+
+    stopLooper(); // Clear any existing loop
+
+    if (looperMode === 'off') return;
+
+    // Set loop start point to current time
+    loopStartTime = player.getCurrentTime();
+    loopDuration = calculateBarDuration(looperMode);
+
+    console.log(`Looper started: ${looperMode} bar = ${loopDuration.toFixed(3)}s`);
+
+    // Check loop every 50ms for precision
+    looperInterval = setInterval(() => {
+        if (!player || !playerReady) return;
+
+        const currentTime = player.getCurrentTime();
+        const loopEndTime = loopStartTime + loopDuration;
+
+        // If we've passed the loop end point, jump back
+        if (currentTime >= loopEndTime) {
+            player.seekTo(loopStartTime, true);
+        }
+    }, 50);
+}
+
+function stopLooper() {
+    if (looperInterval) {
+        clearInterval(looperInterval);
+        looperInterval = null;
+    }
+}
+
+function toggleLooper() {
+    const modes = ['off', '1/32', '1/16', '1/8', '1/4'];
+    const currentIndex = modes.indexOf(looperMode);
+    looperMode = modes[(currentIndex + 1) % modes.length];
+
+    looperBtn.classList.toggle('active', looperMode !== 'off');
+    looperLabel.textContent = looperMode === 'off' ? 'OFF' : looperMode;
+
+    const titles = {
+        'off': 'Looper Off',
+        '1/32': 'Loop 1/32 Bar',
+        '1/16': 'Loop 1/16 Bar',
+        '1/8': 'Loop 1/8 Bar',
+        '1/4': 'Loop 1/4 Bar'
+    };
+    const notifications = {
+        'off': '🔄 Looper: OFF',
+        '1/32': '🔄 Looper: 1/32 Bar',
+        '1/16': '🔄 Looper: 1/16 Bar',
+        '1/8': '🔄 Looper: 1/8 Bar',
+        '1/4': '🔄 Looper: 1/4 Bar'
+    };
+
+    looperBtn.title = titles[looperMode];
+    showNotification(notifications[looperMode]);
+
+    if (looperMode !== 'off' && isPlaying) {
+        startLooper();
+    } else {
+        stopLooper();
+    }
+}
+
 // ========== PROGRESS TRACKING ==========
 
 function startProgressTracking() {
@@ -877,6 +971,7 @@ prevBtn.addEventListener('click', playPrevious);
 nextBtn.addEventListener('click', playNext);
 shuffleBtn.addEventListener('click', toggleShuffle);
 repeatBtn.addEventListener('click', toggleRepeat);
+looperBtn.addEventListener('click', toggleLooper);
 
 progressBar.addEventListener('click', seekTo);
 

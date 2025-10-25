@@ -984,7 +984,34 @@ html {
 }
 
 .shuffle-btn.active,
-.repeat-btn.active {
+.repeat-btn.active,
+.looper-btn.active {
+    color: var(--primary-color);
+}
+
+.looper-btn {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.looper-label {
+    font-family: var(--font-sans);
+    font-size: 0.5rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--secondary-color);
+    transition: color 0.3s ease;
+}
+
+.looper-btn.active .looper-label {
+    color: var(--primary-color);
+    text-shadow: 0 0 8px rgba(204, 0, 0, 0.6);
+}
+
+.looper-btn:hover .looper-label {
     color: var(--primary-color);
 }
 
