@@ -256,6 +256,9 @@ function onPlayerReady(event) {
     repeatBtn.title = 'Repeat: All Tracks';
 
     console.log('YouTube player ready');
+
+    // Autoplay first track when user enters the site
+    player.playVideo();
 }
 
 function onPlayerStateChange(event) {
