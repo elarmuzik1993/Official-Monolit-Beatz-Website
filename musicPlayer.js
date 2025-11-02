@@ -30,6 +30,11 @@ let shuffleHistory = [];
 let wasPlayingBeforeChange = false;
 let playerReady = false;
 
+// Performance optimizations: Cache DOM elements
+let trackElements = [];
+let shareMenus = [];
+let likedTracksCache = null;
+
 // DJ Looper state
 let looperMode = 'off'; // 'off', '1/64', '1/32', '1/16', '1/8', '1/4'
 let looperInterval;
@@ -359,8 +364,8 @@ function updateCurrentTrack() {
     albumArt.src = track.thumbnail;
     durationTime.textContent = formatTime(track.duration);
 
-    // Update active state in tracklist
-    document.querySelectorAll('.track-item').forEach((item, index) => {
+    // Update active state in tracklist using cached elements
+    trackElements.forEach((item, index) => {
         item.classList.toggle('active', index === currentTrackIndex);
     });
 }
@@ -372,12 +377,10 @@ function updatePlayPauseUI() {
         playIcon.style.display = 'none';
         pauseIcon.style.display = 'block';
 
-        // Add playing class to active track for volume meter animation
-        document.querySelectorAll('.track-item').forEach((item, index) => {
-            if (index === currentTrackIndex) {
-                item.classList.add('playing');
-            }
-        });
+        // Add playing class to active track for volume meter animation using cached elements
+        if (trackElements[currentTrackIndex]) {
+            trackElements[currentTrackIndex].classList.add('playing');
+        }
         // Trigger animation
         setTimeout(() => {
             pauseIcon.style.opacity = '1';
@@ -392,8 +395,8 @@ function updatePlayPauseUI() {
         pauseIcon.style.display = 'none';
         playIcon.style.display = 'block';
 
-        // Remove playing class from all tracks when paused
-        document.querySelectorAll('.track-item').forEach(item => {
+        // Remove playing class from all tracks when paused using cached elements
+        trackElements.forEach(item => {
             item.classList.remove('playing');
         });
 
@@ -415,8 +418,13 @@ function renderTracklist() {
     tracklistContainer.innerHTML = '';
     trackCount.textContent = `${playlist.length} tracks`;
 
+    // Reset caches
+    trackElements = [];
+    shareMenus = [];
+
     playlist.forEach((track, index) => {
         const trackItem = createTrackItem(track, index);
+        trackElements.push(trackItem); // Cache track element
         tracklistContainer.appendChild(trackItem);
     });
 }
@@ -508,6 +516,10 @@ function createTrackItem(track, index) {
         e.stopPropagation();
         toggleShareMenu(index);
     });
+
+    // Cache share menu element
+    const shareMenu = div.querySelector('.share-menu');
+    shareMenus.push(shareMenu);
 
     return div;
 }
@@ -766,7 +778,7 @@ function startLooper() {
 
     console.log(`Loop fixed: ${loopStartTime.toFixed(3)}s to ${fixedLoopEnd.toFixed(3)}s (${looperMode} bar = ${loopDuration.toFixed(3)}s)`);
 
-    // Check loop every 25ms for tighter precision (reduced from 50ms)
+    // Check loop every 50ms for good precision with better performance
     looperInterval = setInterval(() => {
         if (!player || !playerReady) return;
 
@@ -777,7 +789,7 @@ function startLooper() {
             player.seekTo(loopStartTime, true);
             console.log(`Looped back to ${loopStartTime.toFixed(3)}s`);
         }
-    }, 25);
+    }, 50); // Balanced between precision and performance
 }
 
 function stopLooper() {
@@ -844,7 +856,7 @@ function startProgressTracking() {
                 stopProgressTracking();
             }
         }
-    }, 100);
+    }, 250); // Reduced from 100ms to 250ms for better performance
 }
 
 function stopProgressTracking() {
@@ -968,13 +980,19 @@ function updateVolumeIcon(volume) {
 
 // ========== LIKE SYSTEM ==========
 
+function getLikedTracks() {
+    if (likedTracksCache === null) {
+        likedTracksCache = JSON.parse(localStorage.getItem('likedTracks') || '[]');
+    }
+    return likedTracksCache;
+}
+
 function isTrackLiked(trackId) {
-    const liked = JSON.parse(localStorage.getItem('likedTracks') || '[]');
-    return liked.includes(trackId);
+    return getLikedTracks().includes(trackId);
 }
 
 function toggleLike(trackId, button) {
-    let liked = JSON.parse(localStorage.getItem('likedTracks') || '[]');
+    let liked = getLikedTracks();
     const index = liked.indexOf(trackId);
 
     if (index > -1) {
@@ -987,16 +1005,17 @@ function toggleLike(trackId, button) {
         button.querySelector('svg').setAttribute('fill', 'currentColor');
     }
 
+    likedTracksCache = liked; // Update cache
     localStorage.setItem('likedTracks', JSON.stringify(liked));
 }
 
 // ========== SHARE FUNCTIONALITY ==========
 
 function toggleShareMenu(index) {
-    const menu = document.getElementById(`share-menu-${index}`);
+    const menu = shareMenus[index];
 
-    // Close all other menus
-    document.querySelectorAll('.share-menu').forEach(m => {
+    // Close all other menus using cached elements
+    shareMenus.forEach(m => {
         if (m !== menu) m.classList.remove('active');
     });
 
@@ -1018,15 +1037,15 @@ function shareTrack(platform, videoId, title = '') {
             break;
     }
 
-    // Close all share menus
-    document.querySelectorAll('.share-menu').forEach(m => m.classList.remove('active'));
+    // Close all share menus using cached elements
+    shareMenus.forEach(m => m.classList.remove('active'));
 }
 
 function copyTrackLink(videoId, index) {
     const url = `https://www.youtube.com/watch?v=${videoId}`;
 
     navigator.clipboard.writeText(url).then(() => {
-        const menu = document.getElementById(`share-menu-${index}`);
+        const menu = shareMenus[index];
         const copyOption = menu.querySelector('.share-option:last-child span');
         const originalText = copyOption.textContent;
 
@@ -1085,7 +1104,7 @@ volumeBtn.addEventListener('click', toggleMute);
 // Close share menus when clicking outside
 document.addEventListener('click', (e) => {
     if (!e.target.closest('.share-dropdown')) {
-        document.querySelectorAll('.share-menu').forEach(m => m.classList.remove('active'));
+        shareMenus.forEach(m => m.classList.remove('active'));
     }
 });
 
@@ -1294,6 +1313,20 @@ window.MusicPlayer = {
         };
     }
 };
+
+// ========== CLEANUP ON PAGE UNLOAD ==========
+function cleanupAllIntervals() {
+    stopProgressTracking();
+    stopLooper();
+    if (notificationTimeout) {
+        clearTimeout(notificationTimeout);
+        notificationTimeout = null;
+    }
+}
+
+// Clean up resources when page unloads
+window.addEventListener('beforeunload', cleanupAllIntervals);
+window.addEventListener('pagehide', cleanupAllIntervals); // For mobile Safari
 
 // Initialize if YouTube API is already loaded
 if (window.YT && window.YT.Player) {
