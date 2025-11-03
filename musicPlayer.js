@@ -137,6 +137,10 @@ async function fetchTracks() {
 
         if (cachedPlaylist && cachedPlaylist.length > 0) {
             playlist = cachedPlaylist;
+            // Track cache hit
+            if (window.Analytics) {
+                Analytics.trackPlaylistLoad(true);
+            }
             initializePlayer();
             renderTracklist();
             hideLoading();
@@ -194,12 +198,22 @@ async function fetchTracks() {
         // Cache the playlist data
         setCachedPlaylist(playlist);
 
+        // Track API fetch
+        if (window.Analytics) {
+            Analytics.trackPlaylistLoad(false);
+        }
+
         initializePlayer();
         renderTracklist();
         hideLoading();
 
     } catch (error) {
         console.error('Error fetching tracks:', error);
+
+        // Track error
+        if (window.Analytics) {
+            Analytics.trackPlaylistError(error.message);
+        }
 
         // Try to use cached data as fallback even if expired
         const cachedPlaylist = localStorage.getItem(CACHE_KEY);
@@ -276,12 +290,22 @@ function onPlayerStateChange(event) {
         case YT.PlayerState.ENDED:
             isPlaying = false;
             isBuffering = false;
+            // Track completion before track ends
+            if (window.Analytics) {
+                const track = playlist[currentTrackIndex];
+                Analytics.trackComplete(track.title, track.duration);
+            }
             handleTrackEnd();
             break;
 
         case YT.PlayerState.PLAYING:
             isPlaying = true;
             isBuffering = false;
+            // Track play event
+            if (window.Analytics) {
+                const track = playlist[currentTrackIndex];
+                Analytics.trackPlay(track.title, currentTrackIndex, track.duration);
+            }
             updatePlayPauseUI();
             startProgressTracking();
             // Start looper if it's enabled
@@ -293,6 +317,11 @@ function onPlayerStateChange(event) {
         case YT.PlayerState.PAUSED:
             isPlaying = false;
             isBuffering = false;
+            // Track pause event with listen progress
+            if (window.Analytics && player && player.getCurrentTime && player.getDuration) {
+                const track = playlist[currentTrackIndex];
+                Analytics.trackPause(track.title, player.getCurrentTime(), player.getDuration());
+            }
             updatePlayPauseUI();
             stopProgressTracking();
             // Stop looper when paused
@@ -685,6 +714,11 @@ function playPrevious() {
         nextIndex = (currentTrackIndex - 1 + playlist.length) % playlist.length;
     }
 
+    // Track skip event
+    if (window.Analytics && playlist[nextIndex]) {
+        Analytics.trackSkip('previous', playlist[nextIndex].title);
+    }
+
     playTrack(nextIndex, true); // Preserve play state
 }
 
@@ -695,6 +729,11 @@ function playNext() {
         nextIndex = getNextShuffleTrack();
     } else {
         nextIndex = (currentTrackIndex + 1) % playlist.length;
+    }
+
+    // Track skip event
+    if (window.Analytics && playlist[nextIndex]) {
+        Analytics.trackSkip('next', playlist[nextIndex].title);
     }
 
     playTrack(nextIndex, true); // Preserve play state
@@ -717,6 +756,11 @@ function toggleShuffle() {
     shuffleBtn.classList.toggle('active', isShuffle);
     shuffleBtn.title = isShuffle ? 'Shuffle On' : 'Shuffle Off';
 
+    // Track shuffle toggle
+    if (window.Analytics) {
+        Analytics.trackShuffle(isShuffle);
+    }
+
     // Generate shuffle queue when enabling shuffle
     if (isShuffle) {
         generateShuffleQueue();
@@ -735,6 +779,11 @@ function toggleRepeat() {
     repeatMode = modes[(currentIndex + 1) % modes.length];
 
     repeatBtn.classList.toggle('active', repeatMode !== 'off');
+
+    // Track repeat mode change
+    if (window.Analytics) {
+        Analytics.trackRepeat(repeatMode);
+    }
 
     const titles = {
         'off': 'Repeat Off',
@@ -806,6 +855,11 @@ function toggleLooper() {
 
     looperBtn.classList.toggle('active', looperMode !== 'off');
     looperLabel.textContent = looperMode === 'off' ? 'OFF' : looperMode;
+
+    // Track looper toggle
+    if (window.Analytics) {
+        Analytics.trackLooper(looperMode);
+    }
 
     const titles = {
         'off': 'Looper Off',
@@ -960,10 +1014,18 @@ function updateVolume(value) {
 
 function toggleMute() {
     if (currentVolume > 0) {
+        // Track mute
+        if (window.Analytics) {
+            Analytics.trackVolume(0, 'mute');
+        }
         updateVolume(0);
         volumeSlider.value = 0;
     } else {
         const savedVolume = parseInt(localStorage.getItem('playerVolume')) || 100;
+        // Track unmute
+        if (window.Analytics) {
+            Analytics.trackVolume(savedVolume, 'unmute');
+        }
         updateVolume(savedVolume);
         volumeSlider.value = savedVolume;
     }
@@ -994,6 +1056,7 @@ function isTrackLiked(trackId) {
 function toggleLike(trackId, button) {
     let liked = getLikedTracks();
     const index = liked.indexOf(trackId);
+    const isLiked = index === -1;
 
     if (index > -1) {
         liked.splice(index, 1);
@@ -1003,6 +1066,14 @@ function toggleLike(trackId, button) {
         liked.push(trackId);
         button.classList.add('liked');
         button.querySelector('svg').setAttribute('fill', 'currentColor');
+    }
+
+    // Track like event
+    if (window.Analytics) {
+        const track = playlist.find(t => t.id === trackId);
+        if (track) {
+            Analytics.trackLike(track.title, isLiked);
+        }
     }
 
     likedTracksCache = liked; // Update cache
@@ -1025,6 +1096,12 @@ function toggleShareMenu(index) {
 function shareTrack(platform, videoId, title = '') {
     const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
 
+    // Track share event
+    if (window.Analytics) {
+        const decodedTitle = decodeURIComponent(title);
+        Analytics.trackShare(decodedTitle, platform);
+    }
+
     switch (platform) {
         case 'youtube':
             window.open(youtubeUrl, '_blank');
@@ -1043,6 +1120,14 @@ function shareTrack(platform, videoId, title = '') {
 
 function copyTrackLink(videoId, index) {
     const url = `https://www.youtube.com/watch?v=${videoId}`;
+
+    // Track copy link event
+    if (window.Analytics) {
+        const track = playlist.find(t => t.id === videoId);
+        if (track) {
+            Analytics.trackShare(track.title, 'copy_link');
+        }
+    }
 
     navigator.clipboard.writeText(url).then(() => {
         const menu = shareMenus[index];

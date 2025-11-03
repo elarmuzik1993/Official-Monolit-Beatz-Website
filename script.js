@@ -30,20 +30,26 @@ hamburger.addEventListener('keydown', (e) => {
 navLinks.forEach(link => {
     link.addEventListener('click', (e) => {
         e.preventDefault();
-        
+
         const targetId = link.getAttribute('href');
         const targetSection = document.querySelector(targetId);
-        
+
+        // Track navigation click
+        if (window.Analytics) {
+            const sectionName = targetId.replace('#', '');
+            Analytics.trackNavigation(sectionName);
+        }
+
         if (targetSection) {
             const navbarHeight = document.getElementById('navbar').offsetHeight;
             const targetPosition = targetSection.offsetTop - navbarHeight;
-            
+
             window.scrollTo({
                 top: targetPosition,
                 behavior: 'smooth'
             });
         }
-        
+
         navMenu.classList.remove('active');
         hamburger.setAttribute('aria-expanded', 'false');
         const spans = hamburger.querySelectorAll('span');
@@ -182,3 +188,36 @@ if (document.querySelector('.slideshow-container')) {
 
 // Make currentSlide function globally accessible for onclick
 window.currentSlide = currentSlide;
+
+// ========== ANALYTICS TRACKING FOR SOCIAL LINKS ==========
+
+// Track social media clicks in hero section
+document.querySelectorAll('.social-bar .social-link').forEach(link => {
+    link.addEventListener('click', (e) => {
+        if (window.Analytics) {
+            const platform = link.getAttribute('aria-label').toLowerCase();
+            const url = link.getAttribute('href');
+            Analytics.trackSocialClick(platform, url, 'hero');
+        }
+    });
+});
+
+// Track social media clicks in contact section
+document.querySelectorAll('.contact-social .social-btn').forEach(link => {
+    link.addEventListener('click', (e) => {
+        if (window.Analytics) {
+            const platform = link.querySelector('span').textContent.trim().toLowerCase();
+            const url = link.getAttribute('href');
+            Analytics.trackSocialClick(platform, url, 'contact');
+        }
+    });
+});
+
+// Track email contact clicks
+document.querySelectorAll('a[href^="mailto:"]').forEach(link => {
+    link.addEventListener('click', (e) => {
+        if (window.Analytics) {
+            Analytics.trackEmailClick();
+        }
+    });
+});

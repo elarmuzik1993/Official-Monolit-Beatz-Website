@@ -7,6 +7,22 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>Monolit Beatz | Official Website</title>
+
+    <!-- Content Security Policy - Allow Google Analytics -->
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://ssl.google-analytics.com https://www.youtube.com https://s.ytimg.com; img-src 'self' data: https:; connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://www.googleapis.com;">
+
+    <!-- Google Analytics 4 -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-R3FYSJ1TQ7"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-R3FYSJ1TQ7', {
+            'send_page_view': true,
+            'cookie_flags': 'SameSite=None;Secure'
+        });
+    </script>
+
     <link rel="stylesheet" href="styles.css?v=2025011">
 </head>
 <body>
@@ -408,6 +424,7 @@
     <script src="https://www.youtube.com/iframe_api"></script>
 
     <!-- Main Scripts -->
+    <script src="analytics.js"></script>
     <script src="script.js"></script>
     <script src="musicPlayer.js"></script>
 </body>
