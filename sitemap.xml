@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+        xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
+
+    <!-- Homepage -->
+    <url>
+        <loc>https://monolitbeatz.com/</loc>
+        <lastmod>2025-01-05</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>1.0</priority>
+        <image:image>
+            <image:loc>https://monolitbeatz.com/albumart.png</image:loc>
+            <image:title>Monolit Beatz Album Art</image:title>
+            <image:caption>Official album artwork for Monolit Beatz music releases</image:caption>
+        </image:image>
+        <image:image>
+            <image:loc>https://monolitbeatz.com/Avatar.png</image:loc>
+            <image:title>Monolit Beatz Artist Photo</image:title>
+            <image:caption>Music producer and beatmaker Monolit Beatz in studio</image:caption>
+        </image:image>
+    </url>
+
+    <!-- About Section -->
+    <url>
+        <loc>https://monolitbeatz.com/#about</loc>
+        <lastmod>2025-01-05</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+
+    <!-- Services Section -->
+    <url>
+        <loc>https://monolitbeatz.com/#services</loc>
+        <lastmod>2025-01-05</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+
+    <!-- Contact Section -->
+    <url>
+        <loc>https://monolitbeatz.com/#contact</loc>
+        <lastmod>2025-01-05</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
+    </url>
+
+    <!-- Music Player Section -->
+    <url>
+        <loc>https://monolitbeatz.com/#home</loc>
+        <lastmod>2025-01-05</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.9</priority>
+    </url>
+
+</urlset>

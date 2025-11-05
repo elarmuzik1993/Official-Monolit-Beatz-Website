@@ -1,0 +1,68 @@
+# robots.txt for Monolit Beatz Official Website
+# https://monolitbeatz.com/
+
+User-agent: *
+Allow: /
+
+# Sitemaps
+Sitemap: https://monolitbeatz.com/sitemap.xml
+
+# Disallow files that shouldn't be indexed
+Disallow: /README.md
+Disallow: /ANALYTICS_GUIDE.md
+Disallow: /replit.md
+Disallow: /.git/
+Disallow: /.vscode/
+Disallow: /.replit
+Disallow: /CNAME
+
+# Allow important resources
+Allow: /styles.css
+Allow: /script.js
+Allow: /musicPlayer.js
+Allow: /analytics.js
+Allow: /albumart.png
+Allow: /Avatar.png
+Allow: /Avatar2.jpg
+Allow: /Avatar3.png
+
+# Crawl-delay (optional - be friendly to search engines)
+# Crawl-delay: 1
+
+# Block AI scrapers (optional)
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: Claude-Web
+Disallow: /
+
+# Allow Google and other major search engines
+User-agent: Googlebot
+Allow: /
+
+User-agent: Googlebot-Image
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Slurp
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+User-agent: Baiduspider
+Allow: /
+
+User-agent: YandexBot
+Allow: /
