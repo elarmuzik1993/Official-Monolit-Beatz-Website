@@ -183,7 +183,7 @@ async function fetchTracks() {
             const duration = durationInfo ? parseDuration(durationInfo.contentDetails.duration) : 0;
 
             // Use custom high-quality album art for all tracks
-            const thumbnailUrl = 'albumart.png';
+            const thumbnailUrl = 'albumart.webp';
 
             return {
                 id: videoId,
