@@ -2192,8 +2192,19 @@ svg {
 @media (hover: none) {
     .control-btn:hover,
     .track-item:hover,
-    .service-card:hover {
+    .service-card:hover,
+    .review-card:hover {
         transform: none;
+    }
+
+    /* Allow active state transforms */
+    .control-btn:active {
+        transform: scale(0.95);
+    }
+
+    .service-card:active,
+    .review-card:active {
+        transform: translateY(-4px) scale(1.01);
     }
 }
 

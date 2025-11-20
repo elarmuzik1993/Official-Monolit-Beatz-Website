@@ -294,8 +294,8 @@ function onPlayerReady(event) {
     updateCurrentTrack();
 
     // Set repeat button UI to active by default (since repeatMode is 'all')
-    repeatBtn.classList.add('active');
-    repeatBtn.title = 'Repeat: All Tracks';
+    DOM.repeatBtn.classList.add('active');
+    DOM.repeatBtn.title = 'Repeat: All Tracks';
 
     console.log('YouTube player ready');
 
@@ -307,7 +307,7 @@ function onPlayerStateChange(event) {
     console.log('Player state changed:', event.data);
 
     // Remove loading state when player responds
-    playPauseBtn.classList.remove('loading');
+    DOM.playPauseBtn.classList.remove('loading');
 
     switch(event.data) {
         case YT.PlayerState.ENDED:
@@ -353,7 +353,7 @@ function onPlayerStateChange(event) {
 
         case YT.PlayerState.BUFFERING:
             isBuffering = true;
-            playPauseBtn.classList.add('loading');
+            DOM.playPauseBtn.classList.add('loading');
             // Keep isPlaying state as it was
             break;
 
@@ -369,7 +369,7 @@ function onPlayerStateChange(event) {
 function onPlayerError(event) {
     console.error('YouTube player error:', event.data);
     isBuffering = false;
-    playPauseBtn.classList.remove('loading');
+    DOM.playPauseBtn.classList.remove('loading');
 
     // Error codes: 2 (invalid param), 5 (HTML5 error), 100 (not found), 101/150 (not embeddable)
     const errorCodes = {
@@ -707,7 +707,7 @@ function togglePlayPause() {
     if (!player || !player.playVideo) return;
 
     // Add loading state briefly for visual feedback
-    playPauseBtn.classList.add('loading');
+    DOM.playPauseBtn.classList.add('loading');
 
     if (isPlaying) {
         player.pauseVideo();
@@ -768,8 +768,8 @@ function handleTrackEnd() {
 
 function toggleShuffle() {
     isShuffle = !isShuffle;
-    shuffleBtn.classList.toggle('active', isShuffle);
-    shuffleBtn.title = isShuffle ? 'Shuffle On' : 'Shuffle Off';
+    DOM.shuffleBtn.classList.toggle('active', isShuffle);
+    DOM.shuffleBtn.title = isShuffle ? 'Shuffle On' : 'Shuffle Off';
 
     // Track shuffle toggle
     if (window.Analytics) {
@@ -858,8 +858,8 @@ function toggleLooper() {
     const currentIndex = modes.indexOf(looperMode);
     looperMode = modes[(currentIndex + 1) % modes.length];
 
-    looperBtn.classList.toggle('active', looperMode !== 'off');
-    looperLabel.textContent = looperMode === 'off' ? 'OFF' : looperMode;
+    DOM.looperBtn.classList.toggle('active', looperMode !== 'off');
+    DOM.looperLabel.textContent = looperMode === 'off' ? 'OFF' : looperMode;
 
     // Track looper toggle
     if (window.Analytics) {
@@ -1024,7 +1024,7 @@ function toggleMute() {
             Analytics.trackVolume(0, 'mute');
         }
         updateVolume(0);
-        volumeSlider.value = 0;
+        DOM.volumeSlider.value = 0;
     } else {
         const savedVolume = parseInt(localStorage.getItem('playerVolume')) || 100;
         // Track unmute
@@ -1032,7 +1032,7 @@ function toggleMute() {
             Analytics.trackVolume(savedVolume, 'unmute');
         }
         updateVolume(savedVolume);
-        volumeSlider.value = savedVolume;
+        DOM.volumeSlider.value = savedVolume;
     }
 }
 
@@ -1295,14 +1295,14 @@ document.addEventListener('keydown', (e) => {
         // Volume up
         case 'ArrowUp':
             e.preventDefault();
-            volumeSlider.value = Math.min(100, parseInt(volumeSlider.value) + 10);
+            DOM.volumeSlider.value = Math.min(100, parseInt(volumeSlider.value) + 10);
             updateVolume(parseInt(volumeSlider.value));
             break;
 
         // Volume down
         case 'ArrowDown':
             e.preventDefault();
-            volumeSlider.value = Math.max(0, parseInt(volumeSlider.value) - 10);
+            DOM.volumeSlider.value = Math.max(0, parseInt(volumeSlider.value) - 10);
             updateVolume(parseInt(volumeSlider.value));
             break;
 
@@ -1361,7 +1361,7 @@ document.addEventListener('keydown', (e) => {
         case '9':
             e.preventDefault();
             const volumePercent = parseInt(e.key) * 10;
-            volumeSlider.value = volumePercent;
+            DOM.volumeSlider.value = volumePercent;
             updateVolume(volumePercent);
             showNotification(`🔊 Volume: ${volumePercent}%`, 1000);
             break;
