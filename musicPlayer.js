@@ -927,8 +927,8 @@ function stopProgressTracking() {
 
 function updateProgress(current, duration) {
     const percentage = (current / duration) * 100;
-    progressFill.style.width = `${percentage}%`;
-    currentTime.textContent = formatTime(Math.floor(current));
+    DOM.progressFill.style.width = `${percentage}%`;
+    DOM.currentTime.textContent = formatTime(Math.floor(current));
 }
 
 // Scrubbing state
@@ -936,7 +936,7 @@ let isScrubbing = false;
 let wasPlayingBeforeScrub = false;
 
 function seekTo(event) {
-    const rect = progressBar.getBoundingClientRect();
+    const rect = DOM.progressBar.getBoundingClientRect();
     const clickX = event.clientX - rect.left;
     const percentage = Math.max(0, Math.min(1, clickX / rect.width));
     const duration = player.getDuration();
@@ -974,15 +974,15 @@ function startScrubbing(event) {
 function onScrubMove(event) {
     if (!isScrubbing) return;
 
-    const rect = progressBar.getBoundingClientRect();
+    const rect = DOM.progressBar.getBoundingClientRect();
     const clickX = event.clientX - rect.left;
     const percentage = Math.max(0, Math.min(1, clickX / rect.width));
     const duration = player.getDuration();
     const seekTime = duration * percentage;
 
     // Update progress bar visually
-    progressFill.style.width = `${percentage * 100}%`;
-    currentTime.textContent = formatTime(Math.floor(seekTime));
+    DOM.progressFill.style.width = `${percentage * 100}%`;
+    DOM.currentTime.textContent = formatTime(Math.floor(seekTime));
 
     // Seek to position
     player.seekTo(seekTime, true);
