@@ -159,16 +159,17 @@ html {
     width: 100%;
     height: 100%;
     opacity: 0;
+    pointer-events: none;
 }
 
 .logo::before {
     color: #ff0000;
-    z-index: -1;
+    z-index: 1;
 }
 
 .logo::after {
     color: #00ffff;
-    z-index: -2;
+    z-index: 1;
 }
 
 .logo:hover {
