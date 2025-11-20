@@ -42,38 +42,49 @@ let loopStartTime = 0;
 let loopDuration = 0;
 const BPM = 120; // Default BPM, can be adjusted
 
-// DOM Elements
-const loadingState = document.getElementById('loading-state');
-const musicPlayer = document.getElementById('music-player');
-const errorState = document.getElementById('error-state');
-const errorMessage = document.getElementById('error-message');
+// DOM Elements - Cache for performance
+const DOM = {
+    // States
+    loadingState: document.getElementById('loading-state'),
+    musicPlayer: document.getElementById('music-player'),
+    errorState: document.getElementById('error-state'),
+    errorMessage: document.getElementById('error-message'),
 
-const albumArt = document.getElementById('current-album-art');
-const playingIndicator = document.getElementById('playing-indicator');
-const trackTitle = document.getElementById('current-track-title');
-const trackArtist = document.getElementById('current-track-artist');
-const trackMeta = document.getElementById('current-track-meta');
+    // Current track info
+    albumArt: document.getElementById('current-album-art'),
+    playingIndicator: document.getElementById('playing-indicator'),
+    trackTitle: document.getElementById('current-track-title'),
+    trackArtist: document.getElementById('current-track-artist'),
+    trackMeta: document.getElementById('current-track-meta'),
 
-const playPauseBtn = document.getElementById('play-pause-btn');
-const playIcon = document.getElementById('play-icon');
-const pauseIcon = document.getElementById('pause-icon');
-const prevBtn = document.getElementById('prev-btn');
-const nextBtn = document.getElementById('next-btn');
-const shuffleBtn = document.getElementById('shuffle-btn');
-const repeatBtn = document.getElementById('repeat-btn');
-const looperBtn = document.getElementById('looper-btn');
-const looperLabel = document.querySelector('.looper-label');
+    // Control buttons
+    playPauseBtn: document.getElementById('play-pause-btn'),
+    playIcon: document.getElementById('play-icon'),
+    pauseIcon: document.getElementById('pause-icon'),
+    prevBtn: document.getElementById('prev-btn'),
+    nextBtn: document.getElementById('next-btn'),
+    shuffleBtn: document.getElementById('shuffle-btn'),
+    repeatBtn: document.getElementById('repeat-btn'),
+    looperBtn: document.getElementById('looper-btn'),
+    looperLabel: document.querySelector('.looper-label'),
 
-const progressBar = document.getElementById('progress-bar');
-const progressFill = document.getElementById('progress-fill');
-const currentTime = document.getElementById('current-time');
-const durationTime = document.getElementById('duration-time');
+    // Progress
+    progressBar: document.getElementById('progress-bar'),
+    progressFill: document.getElementById('progress-fill'),
+    currentTime: document.getElementById('current-time'),
+    durationTime: document.getElementById('duration-time'),
 
-const volumeBtn = document.getElementById('volume-btn');
-const volumeSlider = document.getElementById('volume-slider');
+    // Volume
+    volumeBtn: document.getElementById('volume-btn'),
+    volumeSlider: document.getElementById('volume-slider'),
 
-const tracklistContainer = document.getElementById('tracklist');
-const trackCount = document.getElementById('track-count');
+    // Tracklist
+    tracklistContainer: document.getElementById('tracklist'),
+    trackCount: document.getElementById('track-count'),
+
+    // Notification
+    notificationToast: document.getElementById('notification-toast')
+};
 
 // ========== YOUTUBE API INITIALIZATION ==========
 
@@ -126,6 +137,13 @@ function clearPlaylistCache() {
     localStorage.removeItem(CACHE_KEY);
     localStorage.removeItem(CACHE_TIMESTAMP_KEY);
     console.log('Cache cleared');
+}
+
+// ========== BROWSER COMPATIBILITY POLYFILLS ==========
+
+// Polyfill for fetch if not available (older browsers)
+if (!window.fetch) {
+    console.warn('Fetch API not supported. Using XMLHttpRequest fallback.');
 }
 
 // ========== FETCH TRACKS FROM YOUTUBE PLAYLIST ==========
@@ -246,6 +264,7 @@ function parseDuration(duration) {
 // ========== YOUTUBE PLAYER INITIALIZATION ==========
 
 function initializePlayer() {
+    // Enhanced player parameters for better cross-browser compatibility
     player = new YT.Player('youtube-player', {
         height: '0',
         width: '0',
@@ -255,7 +274,11 @@ function initializePlayer() {
             'controls': 0,
             'rel': 0,
             'showinfo': 0,
-            'modestbranding': 1
+            'modestbranding': 1,
+            'playsinline': 1, // Critical for Instagram/iOS browsers
+            'enablejsapi': 1,
+            'origin': window.location.origin, // Required for some mobile browsers
+            'widget_referrer': window.location.href
         },
         events: {
             'onReady': onPlayerReady,
@@ -374,24 +397,24 @@ function onPlayerError(event) {
 // ========== UI UPDATES ==========
 
 function hideLoading() {
-    loadingState.style.display = 'none';
-    musicPlayer.style.display = 'grid';
+    DOM.loadingState.style.display = 'none';
+    DOM.musicPlayer.style.display = 'grid';
 }
 
 function showError(message) {
-    loadingState.style.display = 'none';
-    errorState.style.display = 'block';
-    errorMessage.textContent = message;
+    DOM.loadingState.style.display = 'none';
+    DOM.errorState.style.display = 'block';
+    DOM.errorMessage.textContent = message;
 }
 
 function updateCurrentTrack() {
     const track = playlist[currentTrackIndex];
 
-    trackTitle.textContent = track.title;
-    trackArtist.textContent = 'Monolit Beatz';
-    trackMeta.textContent = `${formatDate(track.publishedAt)} • ${formatViews(track.views)} views`;
-    albumArt.src = track.thumbnail;
-    durationTime.textContent = formatTime(track.duration);
+    DOM.trackTitle.textContent = track.title;
+    DOM.trackArtist.textContent = 'Monolit Beatz';
+    DOM.trackMeta.textContent = `${formatDate(track.publishedAt)} • ${formatViews(track.views)} views`;
+    DOM.albumArt.src = track.thumbnail;
+    DOM.durationTime.textContent = formatTime(track.duration);
 
     // Update active state in tracklist using cached elements
     trackElements.forEach((item, index) => {
@@ -400,41 +423,31 @@ function updateCurrentTrack() {
 }
 
 function updatePlayPauseUI() {
+    const { playIcon, pauseIcon, playPauseBtn, albumArt, playingIndicator } = DOM;
+
     if (isPlaying) {
-        playIcon.style.opacity = '0';
-        playIcon.style.transform = 'scale(0.8) rotate(90deg)';
-        playIcon.style.display = 'none';
+        Object.assign(playIcon.style, { opacity: '0', transform: 'scale(0.8) rotate(90deg)', display: 'none' });
         pauseIcon.style.display = 'block';
 
-        // Add playing class to active track for volume meter animation using cached elements
-        if (trackElements[currentTrackIndex]) {
-            trackElements[currentTrackIndex].classList.add('playing');
-        }
-        // Trigger animation
+        trackElements[currentTrackIndex]?.classList.add('playing');
+
         setTimeout(() => {
-            pauseIcon.style.opacity = '1';
-            pauseIcon.style.transform = 'scale(1) rotate(0deg)';
+            Object.assign(pauseIcon.style, { opacity: '1', transform: 'scale(1) rotate(0deg)' });
         }, 10);
+
         playPauseBtn.setAttribute('aria-label', 'Pause');
         albumArt.classList.add('playing');
         playingIndicator.style.display = 'flex';
     } else {
-        pauseIcon.style.opacity = '0';
-        pauseIcon.style.transform = 'scale(0.8) rotate(-90deg)';
-        pauseIcon.style.display = 'none';
+        Object.assign(pauseIcon.style, { opacity: '0', transform: 'scale(0.8) rotate(-90deg)', display: 'none' });
         playIcon.style.display = 'block';
 
-        // Remove playing class from all tracks when paused using cached elements
-        trackElements.forEach(item => {
-            item.classList.remove('playing');
-        });
+        trackElements.forEach(item => item.classList.remove('playing'));
 
-        // Trigger animation
         setTimeout(() => {
-            playIcon.style.opacity = '1';
-            playIcon.style.transform = 'scale(1) rotate(0deg)';
+            Object.assign(playIcon.style, { opacity: '1', transform: 'scale(1) rotate(0deg)' });
         }, 10);
-        pauseIcon.style.display = 'none';
+
         playPauseBtn.setAttribute('aria-label', 'Play');
         albumArt.classList.remove('playing');
         playingIndicator.style.display = 'none';
@@ -444,18 +457,20 @@ function updatePlayPauseUI() {
 // ========== TRACKLIST RENDERING ==========
 
 function renderTracklist() {
-    tracklistContainer.innerHTML = '';
-    trackCount.textContent = `${playlist.length} tracks`;
+    DOM.tracklistContainer.innerHTML = '';
+    DOM.trackCount.textContent = `${playlist.length} tracks`;
 
-    // Reset caches
     trackElements = [];
     shareMenus = [];
 
+    const fragment = document.createDocumentFragment();
     playlist.forEach((track, index) => {
         const trackItem = createTrackItem(track, index);
-        trackElements.push(trackItem); // Cache track element
-        tracklistContainer.appendChild(trackItem);
+        trackElements.push(trackItem);
+        fragment.appendChild(trackItem);
     });
+
+    DOM.tracklistContainer.appendChild(fragment);
 }
 
 function createTrackItem(track, index) {
@@ -775,28 +790,18 @@ function toggleShuffle() {
 
 function toggleRepeat() {
     const modes = ['off', 'all', 'one'];
-    const currentIndex = modes.indexOf(repeatMode);
-    repeatMode = modes[(currentIndex + 1) % modes.length];
-
-    repeatBtn.classList.toggle('active', repeatMode !== 'off');
-
-    // Track repeat mode change
-    if (window.Analytics) {
-        Analytics.trackRepeat(repeatMode);
-    }
-
-    const titles = {
-        'off': 'Repeat Off',
-        'all': 'Repeat All',
-        'one': 'Repeat One'
+    const config = {
+        off: { title: 'Repeat Off', notification: '🔁 Repeat: OFF' },
+        all: { title: 'Repeat All', notification: '🔁 Repeat: ALL' },
+        one: { title: 'Repeat One', notification: '🔁 Repeat: ONE' }
     };
-    const notifications = {
-        'off': '🔁 Repeat: OFF',
-        'all': '🔁 Repeat: ALL',
-        'one': '🔁 Repeat: ONE'
-    };
-    repeatBtn.title = titles[repeatMode];
-    showNotification(notifications[repeatMode]);
+
+    repeatMode = modes[(modes.indexOf(repeatMode) + 1) % modes.length];
+    DOM.repeatBtn.classList.toggle('active', repeatMode !== 'off');
+    DOM.repeatBtn.title = config[repeatMode].title;
+
+    window.Analytics?.trackRepeat(repeatMode);
+    showNotification(config[repeatMode].notification);
 }
 
 // ========== DJ LOOPER ==========
@@ -1129,17 +1134,50 @@ function copyTrackLink(videoId, index) {
         }
     }
 
-    navigator.clipboard.writeText(url).then(() => {
-        const menu = shareMenus[index];
-        const copyOption = menu.querySelector('.share-option:last-child span');
-        const originalText = copyOption.textContent;
+    // Try modern clipboard API first, fallback to older methods
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(() => {
+            showCopySuccess(index);
+        }).catch(() => {
+            fallbackCopyToClipboard(url, index);
+        });
+    } else {
+        fallbackCopyToClipboard(url, index);
+    }
+}
 
-        copyOption.textContent = 'Copied!';
-        setTimeout(() => {
-            copyOption.textContent = originalText;
-            menu.classList.remove('active');
-        }, 1500);
-    });
+// Fallback clipboard copy for older browsers
+function fallbackCopyToClipboard(text, index) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-9999px';
+    textArea.style.top = '0';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    try {
+        document.execCommand('copy');
+        showCopySuccess(index);
+    } catch (err) {
+        console.error('Failed to copy:', err);
+        showNotification('❌ Copy failed');
+    }
+
+    document.body.removeChild(textArea);
+}
+
+function showCopySuccess(index) {
+    const menu = shareMenus[index];
+    const copyOption = menu.querySelector('.share-option:last-child span');
+    const originalText = copyOption.textContent;
+
+    copyOption.textContent = 'Copied!';
+    setTimeout(() => {
+        copyOption.textContent = originalText;
+        menu.classList.remove('active');
+    }, 1500);
 }
 
 // ========== UTILITY FUNCTIONS ==========
@@ -1170,21 +1208,20 @@ function formatViews(views) {
 
 // ========== EVENT LISTENERS ==========
 
-playPauseBtn.addEventListener('click', togglePlayPause);
-prevBtn.addEventListener('click', playPrevious);
-nextBtn.addEventListener('click', playNext);
-shuffleBtn.addEventListener('click', toggleShuffle);
-repeatBtn.addEventListener('click', toggleRepeat);
-looperBtn.addEventListener('click', toggleLooper);
+// Control buttons
+DOM.playPauseBtn.addEventListener('click', togglePlayPause);
+DOM.prevBtn.addEventListener('click', playPrevious);
+DOM.nextBtn.addEventListener('click', playNext);
+DOM.shuffleBtn.addEventListener('click', toggleShuffle);
+DOM.repeatBtn.addEventListener('click', toggleRepeat);
+DOM.looperBtn.addEventListener('click', toggleLooper);
 
-// Enable scrubbing with mousedown for drag-to-seek functionality
-progressBar.addEventListener('mousedown', startScrubbing);
+// Progress bar scrubbing
+DOM.progressBar.addEventListener('mousedown', startScrubbing);
 
-volumeSlider.addEventListener('input', (e) => {
-    updateVolume(parseInt(e.target.value));
-});
-
-volumeBtn.addEventListener('click', toggleMute);
+// Volume controls
+DOM.volumeSlider.addEventListener('input', (e) => updateVolume(parseInt(e.target.value)));
+DOM.volumeBtn.addEventListener('click', toggleMute);
 
 // Close share menus when clicking outside
 document.addEventListener('click', (e) => {
@@ -1194,20 +1231,17 @@ document.addEventListener('click', (e) => {
 });
 
 // ========== NOTIFICATION SYSTEM ==========
-const notificationToast = document.getElementById('notification-toast');
+
 let notificationTimeout;
 
 function showNotification(message, duration = 2000) {
-    // Clear any existing timeout
-    if (notificationTimeout) {
-        clearTimeout(notificationTimeout);
-    }
+    if (notificationTimeout) clearTimeout(notificationTimeout);
 
-    notificationToast.textContent = message;
-    notificationToast.classList.add('show');
+    DOM.notificationToast.textContent = message;
+    DOM.notificationToast.classList.add('show');
 
     notificationTimeout = setTimeout(() => {
-        notificationToast.classList.remove('show');
+        DOM.notificationToast.classList.remove('show');
     }, duration);
 }
 

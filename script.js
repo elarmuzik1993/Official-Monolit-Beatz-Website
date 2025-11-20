@@ -1,22 +1,34 @@
+// ========== NAVIGATION ==========
+
 const hamburger = document.querySelector('.hamburger');
 const navMenu = document.querySelector('.nav-menu');
 const navLinks = document.querySelectorAll('.nav-link');
+
+const resetHamburgerSpans = (spans) => {
+    spans[0].style.transform = 'none';
+    spans[1].style.opacity = '1';
+    spans[2].style.transform = 'none';
+};
+
+const animateHamburgerSpans = (spans) => {
+    spans[0].style.transform = 'rotate(45deg) translate(5px, 5px)';
+    spans[1].style.opacity = '0';
+    spans[2].style.transform = 'rotate(-45deg) translate(7px, -6px)';
+};
+
+const closeMenu = () => {
+    navMenu.classList.remove('active');
+    hamburger.setAttribute('aria-expanded', 'false');
+    resetHamburgerSpans(hamburger.querySelectorAll('span'));
+};
 
 const toggleMenu = () => {
     const isExpanded = navMenu.classList.contains('active');
     navMenu.classList.toggle('active');
     hamburger.setAttribute('aria-expanded', !isExpanded);
-    
+
     const spans = hamburger.querySelectorAll('span');
-    if (!isExpanded) {
-        spans[0].style.transform = 'rotate(45deg) translate(5px, 5px)';
-        spans[1].style.opacity = '0';
-        spans[2].style.transform = 'rotate(-45deg) translate(7px, -6px)';
-    } else {
-        spans[0].style.transform = 'none';
-        spans[1].style.opacity = '1';
-        spans[2].style.transform = 'none';
-    }
+    isExpanded ? resetHamburgerSpans(spans) : animateHamburgerSpans(spans);
 };
 
 hamburger.addEventListener('click', toggleMenu);
@@ -36,13 +48,12 @@ navLinks.forEach(link => {
 
         // Track navigation click
         if (window.Analytics) {
-            const sectionName = targetId.replace('#', '');
-            Analytics.trackNavigation(sectionName);
+            Analytics.trackNavigation(targetId.replace('#', ''));
         }
 
         if (targetSection) {
-            const navbarHeight = document.getElementById('navbar').offsetHeight;
-            const targetPosition = targetSection.offsetTop - navbarHeight;
+            const navbar = document.getElementById('navbar');
+            const targetPosition = targetSection.offsetTop - navbar.offsetHeight;
 
             window.scrollTo({
                 top: targetPosition,
@@ -50,174 +61,114 @@ navLinks.forEach(link => {
             });
         }
 
-        navMenu.classList.remove('active');
-        hamburger.setAttribute('aria-expanded', 'false');
-        const spans = hamburger.querySelectorAll('span');
-        spans[0].style.transform = 'none';
-        spans[1].style.opacity = '1';
-        spans[2].style.transform = 'none';
+        closeMenu();
     });
 });
 
-// Navbar is now static at top (no scroll behavior needed)
-
-// Enhanced Intersection Observer for multiple elements
-const observerOptions = {
-    threshold: 0.15,
-    rootMargin: '0px 0px -80px 0px'
-};
+// ========== INTERSECTION OBSERVER FOR FADE-IN ANIMATIONS ==========
 
 const fadeInObserver = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            entry.target.classList.add('fade-in-visible');
-        } else {
-            entry.target.classList.remove('fade-in-visible');
-        }
+        entry.target.classList.toggle('fade-in-visible', entry.isIntersecting);
     });
-}, observerOptions);
-
-// Observe sections
-document.querySelectorAll('.section').forEach(section => {
-    section.classList.add('fade-in-element');
-    fadeInObserver.observe(section);
+}, {
+    threshold: 0.15,
+    rootMargin: '0px 0px -80px 0px'
 });
 
-// Observe section titles
-document.querySelectorAll('.section-title').forEach(title => {
-    title.classList.add('fade-in-element', 'fade-in-delay-1');
-    fadeInObserver.observe(title);
-});
+const observeElements = (selector, ...classes) => {
+    document.querySelectorAll(selector).forEach((el, index) => {
+        const classList = typeof classes[0] === 'function'
+            ? classes[0](index)
+            : classes;
+        el.classList.add('fade-in-element', ...classList);
+        fadeInObserver.observe(el);
+    });
+};
 
-// Observe cards (reviews, services)
-document.querySelectorAll('.review-card').forEach((card, index) => {
-    card.classList.add('fade-in-element', `fade-in-delay-${(index % 3) + 1}`);
-    fadeInObserver.observe(card);
-});
+// Observe all elements
+observeElements('.section');
+observeElements('.section-title', 'fade-in-delay-1');
+observeElements('.review-card', (i) => [`fade-in-delay-${(i % 3) + 1}`]);
+observeElements('.service-card', (i) => [`fade-in-delay-${(i % 3) + 1}`]);
+observeElements('.contact-info, .contact-social', (i) => [`fade-in-delay-${i + 1}`]);
+observeElements('.about-text', 'fade-in-from-left');
+observeElements('.about-image', 'fade-in-from-right');
+observeElements('.music-player-container', 'fade-in-scale');
+observeElements('.social-bar', 'fade-in-delay-2');
 
-document.querySelectorAll('.service-card').forEach((card, index) => {
-    card.classList.add('fade-in-element', `fade-in-delay-${(index % 3) + 1}`);
-    fadeInObserver.observe(card);
-});
-
-// Observe about content
-const aboutText = document.querySelector('.about-text');
-const aboutImage = document.querySelector('.about-image');
-if (aboutText) {
-    aboutText.classList.add('fade-in-element', 'fade-in-from-left');
-    fadeInObserver.observe(aboutText);
-}
-if (aboutImage) {
-    aboutImage.classList.add('fade-in-element', 'fade-in-from-right');
-    fadeInObserver.observe(aboutImage);
-}
-
-// Observe contact sections
-document.querySelectorAll('.contact-info, .contact-social').forEach((section, index) => {
-    section.classList.add('fade-in-element', `fade-in-delay-${index + 1}`);
-    fadeInObserver.observe(section);
-});
-
-// Observe music player
-const musicPlayerContainer = document.querySelector('.music-player-container');
-if (musicPlayerContainer) {
-    musicPlayerContainer.classList.add('fade-in-element', 'fade-in-scale');
-    fadeInObserver.observe(musicPlayerContainer);
-}
-
-// Observe social bar
-const socialBar = document.querySelector('.social-bar');
-if (socialBar) {
-    socialBar.classList.add('fade-in-element', 'fade-in-delay-2');
-    fadeInObserver.observe(socialBar);
-}
-
+// Add security attributes to external links
 document.querySelectorAll('a[href^="http"]').forEach(link => {
     link.setAttribute('rel', 'noopener noreferrer');
 });
 
 // ========== ABOUT SECTION SLIDESHOW ==========
-let currentSlideIndex = 0;
-let slideInterval;
 
-function showSlide(index) {
+const slideshow = (() => {
     const slides = document.querySelectorAll('.slide');
     const dots = document.querySelectorAll('.dot');
 
-    if (!slides.length) return;
+    if (!slides.length) return null;
 
-    // Wrap around for endless loop
-    if (index >= slides.length) {
-        currentSlideIndex = 0;
-    } else if (index < 0) {
-        currentSlideIndex = slides.length - 1;
-    } else {
-        currentSlideIndex = index;
-    }
+    let currentIndex = 0;
+    let interval;
 
-    // Hide all slides
-    slides.forEach(slide => slide.classList.remove('active'));
-    dots.forEach(dot => dot.classList.remove('active'));
+    const showSlide = (index) => {
+        // Wrap around
+        currentIndex = ((index % slides.length) + slides.length) % slides.length;
 
-    // Show current slide
-    slides[currentSlideIndex].classList.add('active');
-    dots[currentSlideIndex].classList.add('active');
-}
+        slides.forEach(s => s.classList.remove('active'));
+        dots.forEach(d => d.classList.remove('active'));
 
-function currentSlide(index) {
-    showSlide(index - 1);
-    // Reset auto-advance timer
-    clearInterval(slideInterval);
-    startSlideshow();
-}
+        slides[currentIndex].classList.add('active');
+        dots[currentIndex].classList.add('active');
+    };
 
-function nextSlide() {
-    showSlide(currentSlideIndex + 1);
-}
+    const start = () => {
+        interval = setInterval(() => showSlide(currentIndex + 1), 5000);
+    };
 
-function startSlideshow() {
-    // Auto-advance every 5 seconds
-    slideInterval = setInterval(nextSlide, 5000);
-}
+    const goToSlide = (index) => {
+        showSlide(index - 1);
+        clearInterval(interval);
+        start();
+    };
 
-// Initialize slideshow when page loads
-if (document.querySelector('.slideshow-container')) {
+    // Initialize
     showSlide(0);
-    startSlideshow();
-}
+    start();
 
-// Make currentSlide function globally accessible for onclick
-window.currentSlide = currentSlide;
+    return { goToSlide };
+})();
 
-// ========== ANALYTICS TRACKING FOR SOCIAL LINKS ==========
+// Expose for inline onclick handlers
+window.currentSlide = slideshow?.goToSlide || (() => {});
 
-// Track social media clicks in hero section
-document.querySelectorAll('.social-bar .social-link').forEach(link => {
-    link.addEventListener('click', (e) => {
-        if (window.Analytics) {
-            const platform = link.getAttribute('aria-label').toLowerCase();
-            const url = link.getAttribute('href');
-            Analytics.trackSocialClick(platform, url, 'hero');
-        }
+// ========== ANALYTICS TRACKING ==========
+
+const trackClick = (selector, callback) => {
+    document.querySelectorAll(selector).forEach(el => {
+        el.addEventListener('click', () => window.Analytics && callback(el));
     });
+};
+
+// Track social media clicks
+trackClick('.social-bar .social-link', (link) => {
+    window.Analytics.trackSocialClick(
+        link.getAttribute('aria-label').toLowerCase(),
+        link.getAttribute('href'),
+        'hero'
+    );
 });
 
-// Track social media clicks in contact section
-document.querySelectorAll('.contact-social .social-btn').forEach(link => {
-    link.addEventListener('click', (e) => {
-        if (window.Analytics) {
-            const platform = link.querySelector('span').textContent.trim().toLowerCase();
-            const url = link.getAttribute('href');
-            Analytics.trackSocialClick(platform, url, 'contact');
-        }
-    });
+trackClick('.contact-social .social-btn', (link) => {
+    window.Analytics.trackSocialClick(
+        link.querySelector('span').textContent.trim().toLowerCase(),
+        link.getAttribute('href'),
+        'contact'
+    );
 });
 
-// Track email contact clicks
-document.querySelectorAll('a[href^="mailto:"]').forEach(link => {
-    link.addEventListener('click', (e) => {
-        if (window.Analytics) {
-            Analytics.trackEmailClick();
-        }
-    });
+trackClick('a[href^="mailto:"]', () => {
+    window.Analytics.trackEmailClick();
 });

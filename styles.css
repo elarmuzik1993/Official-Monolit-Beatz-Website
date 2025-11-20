@@ -1968,3 +1968,60 @@ html {
         font-size: 0.85rem;
     }
 }
+
+/* ========== BROWSER COMPATIBILITY FIXES ========== */
+
+/* Critical fixes for Instagram browser and mobile browsers */
+html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-overflow-scrolling: touch;
+}
+
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Webkit prefixes for better compatibility */
+#navbar {
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.music-player {
+    -webkit-backdrop-filter: blur(20px);
+}
+
+/* Prevent double-tap zoom on interactive elements */
+button,
+a,
+.control-btn,
+.track-btn {
+    touch-action: manipulation;
+}
+
+/* Fix for viewport height on mobile browsers */
+.hero {
+    min-height: -webkit-fill-available;
+}
+
+/* Better SVG rendering */
+svg {
+    shape-rendering: geometricPrecision;
+}
+
+/* Fix hover states on touch devices */
+@media (hover: none) {
+    .control-btn:hover,
+    .track-item:hover,
+    .service-card:hover {
+        transform: none;
+    }
+}
+
+/* Safe area for notched devices */
+@supports (padding: env(safe-area-inset-top)) {
+    #navbar {
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
+    }
+}
