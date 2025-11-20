@@ -712,11 +712,11 @@ function togglePlayPause() {
     if (isPlaying) {
         player.pauseVideo();
         // Remove loading state after brief delay
-        setTimeout(() => playPauseBtn.classList.remove('loading'), 150);
+        setTimeout(() => DOM.playPauseBtn.classList.remove('loading'), 150);
     } else {
         player.playVideo();
         // Remove loading state after brief delay
-        setTimeout(() => playPauseBtn.classList.remove('loading'), 150);
+        setTimeout(() => DOM.playPauseBtn.classList.remove('loading'), 150);
     }
 }
 
@@ -883,7 +883,7 @@ function toggleLooper() {
         '1/4': '🔄 Looper: 1/4 Bar'
     };
 
-    looperBtn.title = titles[looperMode];
+    DOM.looperBtn.title = titles[looperMode];
     showNotification(notifications[looperMode]);
 
     if (looperMode !== 'off' && isPlaying) {
@@ -1295,15 +1295,15 @@ document.addEventListener('keydown', (e) => {
         // Volume up
         case 'ArrowUp':
             e.preventDefault();
-            DOM.volumeSlider.value = Math.min(100, parseInt(volumeSlider.value) + 10);
-            updateVolume(parseInt(volumeSlider.value));
+            DOM.volumeSlider.value = Math.min(100, parseInt(DOM.volumeSlider.value) + 10);
+            updateVolume(parseInt(DOM.volumeSlider.value));
             break;
 
         // Volume down
         case 'ArrowDown':
             e.preventDefault();
-            DOM.volumeSlider.value = Math.max(0, parseInt(volumeSlider.value) - 10);
-            updateVolume(parseInt(volumeSlider.value));
+            DOM.volumeSlider.value = Math.max(0, parseInt(DOM.volumeSlider.value) - 10);
+            updateVolume(parseInt(DOM.volumeSlider.value));
             break;
 
         // Mute/Unmute
@@ -1388,7 +1388,7 @@ document.addEventListener('keydown', (e) => {
 const savedVolume = parseInt(localStorage.getItem('playerVolume'));
 if (savedVolume !== null) {
     currentVolume = savedVolume;
-    volumeSlider.value = savedVolume;
+    DOM.volumeSlider.value = savedVolume;
 }
 
 // ========== EXPOSE CACHE MANAGEMENT FOR DEBUGGING ==========
