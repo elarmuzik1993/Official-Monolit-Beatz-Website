@@ -299,8 +299,15 @@ function onPlayerReady(event) {
 
     console.log('YouTube player ready');
 
-    // Autoplay first track when user enters the site
-    player.playVideo();
+    // Detect Instagram/social media in-app browsers that block autoplay
+    const isInAppBrowser = /Instagram|FBAN|FBAV|Twitter|LinkedIn/i.test(navigator.userAgent);
+
+    if (!isInAppBrowser) {
+        // Only autoplay on regular browsers
+        player.playVideo();
+    } else {
+        console.log('In-app browser detected - autoplay disabled');
+    }
 }
 
 function onPlayerStateChange(event) {
