@@ -34,6 +34,11 @@ let playerReady = false;
 const DEBUG_MODE = /Instagram|FBAN|FBAV/i.test(navigator.userAgent);
 let debugLogs = [];
 
+// Instagram auto-restart management
+let instagramAutoRestart = false;
+let restartAttempts = 0;
+const MAX_RESTART_ATTEMPTS = 5;
+
 // Performance optimizations: Cache DOM elements
 let trackElements = [];
 let shareMenus = [];
@@ -337,6 +342,7 @@ function onPlayerStateChange(event) {
         case YT.PlayerState.ENDED:
             isPlaying = false;
             isBuffering = false;
+            instagramAutoRestart = false; // Disable auto-restart on track end
             // Track completion before track ends
             if (window.Analytics) {
                 const track = playlist[currentTrackIndex];
@@ -348,6 +354,7 @@ function onPlayerStateChange(event) {
         case YT.PlayerState.PLAYING:
             isPlaying = true;
             isBuffering = false;
+            restartAttempts = 0; // Reset restart counter on successful play
             // Track play event
             if (window.Analytics) {
                 const track = playlist[currentTrackIndex];
@@ -362,17 +369,38 @@ function onPlayerStateChange(event) {
             break;
 
         case YT.PlayerState.PAUSED:
-            isPlaying = false;
-            isBuffering = false;
-            // Track pause event with listen progress
-            if (window.Analytics && player && player.getCurrentTime && player.getDuration) {
-                const track = playlist[currentTrackIndex];
-                Analytics.trackPause(track.title, player.getCurrentTime(), player.getDuration());
+            // Instagram browser auto-restart logic
+            const isInAppBrowser = /Instagram|FBAN|FBAV|Twitter|LinkedIn/i.test(navigator.userAgent);
+
+            if (isInAppBrowser && instagramAutoRestart && restartAttempts < MAX_RESTART_ATTEMPTS) {
+                // Instagram paused our video - restart it!
+                restartAttempts++;
+                debugLog('⚠️ Instagram paused playback (attempt ' + restartAttempts + '/' + MAX_RESTART_ATTEMPTS + ')');
+                debugLog('🔄 Auto-restarting...');
+
+                setTimeout(() => {
+                    player.playVideo();
+                }, 200);
+            } else {
+                // Normal pause or max attempts reached
+                if (restartAttempts >= MAX_RESTART_ATTEMPTS) {
+                    debugLog('❌ Max restart attempts reached. Stopping auto-restart.');
+                    instagramAutoRestart = false;
+                    showNotification('⚠️ Instagram keeps pausing. Try "Open on YouTube" button.', 5000);
+                }
+
+                isPlaying = false;
+                isBuffering = false;
+                // Track pause event with listen progress
+                if (window.Analytics && player && player.getCurrentTime && player.getDuration) {
+                    const track = playlist[currentTrackIndex];
+                    Analytics.trackPause(track.title, player.getCurrentTime(), player.getDuration());
+                }
+                updatePlayPauseUI();
+                stopProgressTracking();
+                // Stop looper when paused
+                stopLooper();
             }
-            updatePlayPauseUI();
-            stopProgressTracking();
-            // Stop looper when paused
-            stopLooper();
             break;
 
         case YT.PlayerState.BUFFERING:
@@ -813,13 +841,18 @@ function togglePlayPause() {
                     player.playVideo();
                 }, 600);
 
-                // Step 4: Verify playback and show instructions
+                // Step 4: Verify playback and enable auto-restart
                 setTimeout(() => {
                     const currentState = player.getPlayerState();
                     debugLog('Step 4: State = ' + (stateNames[currentState] || currentState));
 
                     if (currentState === YT.PlayerState.PLAYING || currentState === YT.PlayerState.BUFFERING) {
                         debugLog('✅ Playing muted!');
+
+                        // Enable Instagram auto-restart
+                        instagramAutoRestart = true;
+                        restartAttempts = 0;
+                        debugLog('🔄 Auto-restart enabled for Instagram');
 
                         // Show notification about muted playback
                         showNotification('🔇 Playing muted (Instagram restriction). Tap volume to unmute.', 5000);
