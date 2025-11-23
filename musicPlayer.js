@@ -30,6 +30,10 @@ let shuffleHistory = [];
 let wasPlayingBeforeChange = false;
 let playerReady = false;
 
+// Debug mode for Instagram browser testing
+const DEBUG_MODE = /Instagram|FBAN|FBAV/i.test(navigator.userAgent);
+let debugLogs = [];
+
 // Performance optimizations: Cache DOM elements
 let trackElements = [];
 let shareMenus = [];
@@ -299,28 +303,32 @@ function onPlayerReady(event) {
     DOM.repeatBtn.classList.add('active');
     DOM.repeatBtn.title = 'Repeat: All Tracks';
 
-    console.log('YouTube player ready');
-    console.log('User Agent:', navigator.userAgent);
+    debugLog('YouTube player ready');
+    debugLog('User Agent: ' + navigator.userAgent.substring(0, 50) + '...');
 
     // Detect Instagram/social media in-app browsers that block autoplay
     const isInAppBrowser = /Instagram|FBAN|FBAV|Twitter|LinkedIn/i.test(navigator.userAgent);
 
     if (!isInAppBrowser) {
         // Only autoplay on regular browsers
+        debugLog('Regular browser - attempting autoplay');
         player.playVideo();
     } else {
-        console.log('In-app browser detected - autoplay disabled, user must click play');
+        debugLog('Instagram browser detected!');
+        debugLog('Autoplay disabled - user must tap play');
 
         // Show helpful message to user
         showNotification('🎵 Tap the play button to start listening', 4000);
 
         // Cue the video so it's ready to play on user interaction
         player.cueVideoById(playlist[0].id);
+        debugLog('Video cued and ready');
     }
 }
 
 function onPlayerStateChange(event) {
-    console.log('Player state changed:', event.data);
+    const stateNames = {'-1': 'UNSTARTED', '0': 'ENDED', '1': 'PLAYING', '2': 'PAUSED', '3': 'BUFFERING', '5': 'CUED'};
+    debugLog('State change: ' + (stateNames[event.data] || event.data));
 
     // Remove loading state when player responds
     DOM.playPauseBtn.classList.remove('loading');
@@ -756,18 +764,18 @@ function playTrack(index, preservePlayState = false) {
 
 function togglePlayPause() {
     if (!player || !playerReady) {
-        console.warn('Player not ready');
+        debugLog('⚠️ Player not ready!');
         return;
     }
 
-    console.log('togglePlayPause called, isPlaying:', isPlaying);
+    debugLog('▶️ Play button tapped, isPlaying: ' + isPlaying);
 
     // Add loading state briefly for visual feedback
     DOM.playPauseBtn.classList.add('loading');
 
     try {
         if (isPlaying) {
-            console.log('Pausing video...');
+            debugLog('⏸ Pausing video...');
             player.pauseVideo();
             // Remove loading state after brief delay
             setTimeout(() => DOM.playPauseBtn.classList.remove('loading'), 150);
@@ -775,51 +783,54 @@ function togglePlayPause() {
             // For Instagram and other in-app browsers, ensure we're calling playVideo directly
             // This handles the user gesture requirement
             const playerState = player.getPlayerState();
-            console.log('Current player state before play:', playerState);
-            console.log('State codes: UNSTARTED=-1, ENDED=0, PLAYING=1, PAUSED=2, BUFFERING=3, CUED=5');
+            const stateNames = {'-1': 'UNSTARTED', '0': 'ENDED', '1': 'PLAYING', '2': 'PAUSED', '3': 'BUFFERING', '5': 'CUED'};
+            debugLog('Player state: ' + playerState + ' (' + (stateNames[playerState] || 'UNKNOWN') + ')');
 
             // Detect in-app browser
             const isInAppBrowser = /Instagram|FBAN|FBAV|Twitter|LinkedIn/i.test(navigator.userAgent);
 
             if (isInAppBrowser && (playerState === -1 || playerState === 5)) {
                 // For in-app browsers with unstarted/cued state, use loadVideoById first
-                console.log('In-app browser detected with unstarted/cued video - loading first...');
+                debugLog('🔄 Instagram mode: loading video first...');
                 player.loadVideoById({
                     videoId: playlist[currentTrackIndex].id,
                     startSeconds: 0
                 });
                 // Wait for load, then play
                 setTimeout(() => {
-                    console.log('Attempting play after load...');
+                    debugLog('▶️ Attempting play after load...');
                     player.playVideo();
                 }, 500);
             } else {
                 // Regular play attempt
-                console.log('Regular play attempt...');
+                debugLog('▶️ Regular play attempt...');
                 player.playVideo();
             }
 
             // Fallback: if playVideo doesn't work, try loading and playing
             setTimeout(() => {
                 const newState = player.getPlayerState();
-                console.log('Player state after play attempt:', newState);
+                debugLog('State after play: ' + newState + ' (' + (stateNames[newState] || 'UNKNOWN') + ')');
+
                 if (newState !== YT.PlayerState.PLAYING && newState !== YT.PlayerState.BUFFERING) {
-                    console.log('First play attempt failed, trying alternative method');
+                    debugLog('⚠️ Play failed! Trying alternative...');
                     player.loadVideoById({
                         videoId: playlist[currentTrackIndex].id,
                         startSeconds: 0
                     });
                     // Give it a moment to load, then play again
                     setTimeout(() => {
-                        console.log('Second play attempt...');
+                        debugLog('▶️ Second play attempt...');
                         player.playVideo();
                     }, 300);
+                } else {
+                    debugLog('✅ Playback started successfully!');
                 }
                 DOM.playPauseBtn.classList.remove('loading');
             }, 800);
         }
     } catch (error) {
-        console.error('Error in togglePlayPause:', error);
+        debugLog('❌ ERROR: ' + error.message);
         DOM.playPauseBtn.classList.remove('loading');
     }
 }
@@ -1367,6 +1378,85 @@ function showNotification(message, duration = 2000) {
     notificationTimeout = setTimeout(() => {
         DOM.notificationToast.classList.remove('show');
     }, duration);
+}
+
+// ========== DEBUG SYSTEM FOR MOBILE ==========
+
+function debugLog(message) {
+    console.log(message);
+    if (DEBUG_MODE) {
+        const timestamp = new Date().toLocaleTimeString();
+        debugLogs.push(`[${timestamp}] ${message}`);
+
+        // Keep only last 20 logs
+        if (debugLogs.length > 20) {
+            debugLogs.shift();
+        }
+
+        updateDebugPanel();
+    }
+}
+
+function updateDebugPanel() {
+    let panel = document.getElementById('debug-panel');
+
+    if (!panel) {
+        panel = document.createElement('div');
+        panel.id = 'debug-panel';
+        panel.style.cssText = `
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.9);
+            color: #0f0;
+            font-family: monospace;
+            font-size: 10px;
+            padding: 10px;
+            border: 1px solid #0f0;
+            border-radius: 5px;
+            z-index: 10000;
+            line-height: 1.4;
+        `;
+
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = '✕';
+        closeBtn.style.cssText = `
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: #f00;
+            color: #fff;
+            border: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 12px;
+            line-height: 1;
+        `;
+        closeBtn.onclick = () => panel.remove();
+        panel.appendChild(closeBtn);
+
+        const title = document.createElement('div');
+        title.textContent = '🐛 DEBUG MODE (Instagram Browser)';
+        title.style.cssText = 'font-weight: bold; margin-bottom: 10px; padding-right: 30px;';
+        panel.appendChild(title);
+
+        const logContainer = document.createElement('div');
+        logContainer.id = 'debug-logs';
+        panel.appendChild(logContainer);
+
+        document.body.appendChild(panel);
+    }
+
+    const logContainer = document.getElementById('debug-logs');
+    logContainer.innerHTML = debugLogs.join('<br>');
+
+    // Auto-scroll to bottom
+    panel.scrollTop = panel.scrollHeight;
 }
 
 // ========== KEYBOARD SHORTCUTS ==========
