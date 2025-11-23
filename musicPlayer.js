@@ -394,13 +394,35 @@ function onPlayerError(event) {
     const errorMsg = errorCodes[event.data] || 'Unknown playback error';
     console.error(errorMsg);
 
-    // Auto-skip to next track if video unavailable
-    if ([100, 101, 150].includes(event.data)) {
-        console.log('Auto-skipping unavailable video...');
+    // Show user-friendly notification for embedding restrictions
+    if ([101, 150].includes(event.data)) {
+        const track = playlist[currentTrackIndex];
+        showNotification(`⚠️ "${track.title}" cannot be played here. Opening on YouTube...`, 3000);
+
+        // Open video on YouTube in new tab
+        setTimeout(() => {
+            window.open(`https://www.youtube.com/watch?v=${track.id}`, '_blank');
+        }, 500);
+
+        // Auto-skip to next track after brief delay
         setTimeout(() => {
             if (currentTrackIndex < playlist.length - 1 || repeatMode === 'all') {
                 playNext();
             }
+        }, 1500);
+    } else if (event.data === 100) {
+        // Video not found - just skip
+        showNotification('⚠️ Video not available, skipping...', 2000);
+        setTimeout(() => {
+            if (currentTrackIndex < playlist.length - 1 || repeatMode === 'all') {
+                playNext();
+            }
+        }, 1000);
+    } else if ([2, 5].includes(event.data)) {
+        // Playback errors - try reloading
+        showNotification('⚠️ Playback error, retrying...', 2000);
+        setTimeout(() => {
+            player.loadVideoById(playlist[currentTrackIndex].id);
         }, 1000);
     }
 }
