@@ -278,7 +278,9 @@ function initializePlayer() {
             'playsinline': 1, // Critical for Instagram/iOS browsers
             'enablejsapi': 1,
             'origin': window.location.origin, // Required for some mobile browsers
-            'widget_referrer': window.location.href
+            'widget_referrer': window.location.href,
+            'fs': 0, // Disable fullscreen for in-app browsers
+            'disablekb': 1 // Disable keyboard controls for embedded player
         },
         events: {
             'onReady': onPlayerReady,
@@ -306,7 +308,9 @@ function onPlayerReady(event) {
         // Only autoplay on regular browsers
         player.playVideo();
     } else {
-        console.log('In-app browser detected - autoplay disabled');
+        console.log('In-app browser detected - autoplay disabled, user must click play');
+        // Cue the video so it's ready to play on user interaction
+        player.cueVideoById(playlist[0].id);
     }
 }
 
@@ -680,6 +684,9 @@ function playTrack(index, preservePlayState = false) {
     // Stop looper when changing tracks (it will restart when new track plays)
     stopLooper();
 
+    // Detect if we're in an in-app browser
+    const isInAppBrowser = /Instagram|FBAN|FBAV|Twitter|LinkedIn/i.test(navigator.userAgent);
+
     // Fade out before track change if currently playing
     if (isPlaying && currentVolume > 0) {
         fadeVolume(0, 300);
@@ -689,9 +696,17 @@ function playTrack(index, preservePlayState = false) {
 
             // Only autoplay if preserving state and was playing, or if not preserving state
             if (!preservePlayState || wasPlayingBeforeChange) {
-                player.playVideo();
-                // Fade back in after track loads
-                setTimeout(() => fadeVolume(currentVolume, 400), 200);
+                // For in-app browsers, add extra delay to ensure video is loaded
+                const playDelay = isInAppBrowser ? 400 : 100;
+                setTimeout(() => {
+                    player.playVideo();
+                    // Fade back in after play starts
+                    if (!isInAppBrowser) {
+                        setTimeout(() => fadeVolume(currentVolume, 400), 200);
+                    } else {
+                        fadeVolume(currentVolume, 400);
+                    }
+                }, playDelay);
             }
 
             updateCurrentTrack();
@@ -703,7 +718,9 @@ function playTrack(index, preservePlayState = false) {
 
         // Only autoplay if preserving state and was playing, or if not preserving state
         if (!preservePlayState || wasPlayingBeforeChange) {
-            player.playVideo();
+            // For in-app browsers, add extra delay to ensure video is loaded
+            const playDelay = isInAppBrowser ? 400 : 100;
+            setTimeout(() => player.playVideo(), playDelay);
         }
 
         updateCurrentTrack();
@@ -711,19 +728,43 @@ function playTrack(index, preservePlayState = false) {
 }
 
 function togglePlayPause() {
-    if (!player || !player.playVideo) return;
+    if (!player || !playerReady) {
+        console.warn('Player not ready');
+        return;
+    }
 
     // Add loading state briefly for visual feedback
     DOM.playPauseBtn.classList.add('loading');
 
-    if (isPlaying) {
-        player.pauseVideo();
-        // Remove loading state after brief delay
-        setTimeout(() => DOM.playPauseBtn.classList.remove('loading'), 150);
-    } else {
-        player.playVideo();
-        // Remove loading state after brief delay
-        setTimeout(() => DOM.playPauseBtn.classList.remove('loading'), 150);
+    try {
+        if (isPlaying) {
+            player.pauseVideo();
+            // Remove loading state after brief delay
+            setTimeout(() => DOM.playPauseBtn.classList.remove('loading'), 150);
+        } else {
+            // For Instagram and other in-app browsers, ensure we're calling playVideo directly
+            // This handles the user gesture requirement
+            const playerState = player.getPlayerState();
+            console.log('Current player state:', playerState);
+
+            // Force play regardless of current state
+            player.playVideo();
+
+            // Fallback: if playVideo doesn't work, try loading and playing
+            setTimeout(() => {
+                const newState = player.getPlayerState();
+                if (newState !== YT.PlayerState.PLAYING && newState !== YT.PlayerState.BUFFERING) {
+                    console.log('First play attempt failed, trying alternative method');
+                    player.loadVideoById(playlist[currentTrackIndex].id);
+                    // Give it a moment to load, then play again
+                    setTimeout(() => player.playVideo(), 100);
+                }
+                DOM.playPauseBtn.classList.remove('loading');
+            }, 300);
+        }
+    } catch (error) {
+        console.error('Error in togglePlayPause:', error);
+        DOM.playPauseBtn.classList.remove('loading');
     }
 }
 
@@ -1215,20 +1256,40 @@ function formatViews(views) {
 
 // ========== EVENT LISTENERS ==========
 
-// Control buttons
-DOM.playPauseBtn.addEventListener('click', togglePlayPause);
-DOM.prevBtn.addEventListener('click', playPrevious);
-DOM.nextBtn.addEventListener('click', playNext);
-DOM.shuffleBtn.addEventListener('click', toggleShuffle);
-DOM.repeatBtn.addEventListener('click', toggleRepeat);
-DOM.looperBtn.addEventListener('click', toggleLooper);
+// Enhanced event listeners for better mobile/in-app browser support
+// Using both 'click' and 'touchend' to ensure compatibility
+function addUniversalClickListener(element, handler) {
+    // Prevent double-firing on devices that support both touch and click
+    let touchHandled = false;
+
+    element.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        touchHandled = true;
+        handler();
+        setTimeout(() => { touchHandled = false; }, 300);
+    });
+
+    element.addEventListener('click', (e) => {
+        if (!touchHandled) {
+            handler();
+        }
+    });
+}
+
+// Control buttons with universal click handling
+addUniversalClickListener(DOM.playPauseBtn, togglePlayPause);
+addUniversalClickListener(DOM.prevBtn, playPrevious);
+addUniversalClickListener(DOM.nextBtn, playNext);
+addUniversalClickListener(DOM.shuffleBtn, toggleShuffle);
+addUniversalClickListener(DOM.repeatBtn, toggleRepeat);
+addUniversalClickListener(DOM.looperBtn, toggleLooper);
 
 // Progress bar scrubbing
 DOM.progressBar.addEventListener('mousedown', startScrubbing);
 
 // Volume controls
 DOM.volumeSlider.addEventListener('input', (e) => updateVolume(parseInt(e.target.value)));
-DOM.volumeBtn.addEventListener('click', toggleMute);
+addUniversalClickListener(DOM.volumeBtn, toggleMute);
 
 // Close share menus when clicking outside
 document.addEventListener('click', (e) => {
