@@ -152,6 +152,10 @@ html {
     /* Force color rendering for Samsung browser */
     -webkit-text-fill-color: #cc0000;
     -webkit-text-fill-color: var(--primary-color);
+    /* Prevent text wrapping on load */
+    white-space: nowrap;
+    /* Reserve minimum width to prevent layout shift */
+    min-width: 250px;
 }
 
 .logo::before,
