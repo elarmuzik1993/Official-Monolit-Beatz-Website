@@ -789,45 +789,70 @@ function togglePlayPause() {
             // Detect in-app browser
             const isInAppBrowser = /Instagram|FBAN|FBAV|Twitter|LinkedIn/i.test(navigator.userAgent);
 
-            if (isInAppBrowser && (playerState === -1 || playerState === 5)) {
-                // For in-app browsers with unstarted/cued state, use loadVideoById first
-                debugLog('🔄 Instagram mode: loading video first...');
-                player.loadVideoById({
-                    videoId: playlist[currentTrackIndex].id,
-                    startSeconds: 0
-                });
-                // Wait for load, then play
+            if (isInAppBrowser) {
+                // Instagram browser workaround: mute first, play muted, then unmute
+                // This bypasses Instagram's autoplay restrictions
+                debugLog('🔧 Instagram workaround: mute → play → unmute');
+
+                // Save current volume
+                const savedVolume = currentVolume;
+
+                // Step 1: Mute the player
+                debugLog('Step 1: Muting player...');
+                player.mute();
+                player.setVolume(0);
+
+                // Step 2: Load and play muted video
                 setTimeout(() => {
-                    debugLog('▶️ Attempting play after load...');
-                    player.playVideo();
-                }, 500);
-            } else {
-                // Regular play attempt
-                debugLog('▶️ Regular play attempt...');
-                player.playVideo();
-            }
-
-            // Fallback: if playVideo doesn't work, try loading and playing
-            setTimeout(() => {
-                const newState = player.getPlayerState();
-                debugLog('State after play: ' + newState + ' (' + (stateNames[newState] || 'UNKNOWN') + ')');
-
-                if (newState !== YT.PlayerState.PLAYING && newState !== YT.PlayerState.BUFFERING) {
-                    debugLog('⚠️ Play failed! Trying alternative...');
+                    debugLog('Step 2: Loading video...');
                     player.loadVideoById({
                         videoId: playlist[currentTrackIndex].id,
                         startSeconds: 0
                     });
-                    // Give it a moment to load, then play again
-                    setTimeout(() => {
-                        debugLog('▶️ Second play attempt...');
-                        player.playVideo();
-                    }, 300);
-                } else {
-                    debugLog('✅ Playback started successfully!');
-                }
-                DOM.playPauseBtn.classList.remove('loading');
-            }, 800);
+                }, 100);
+
+                // Step 3: Play the video while muted
+                setTimeout(() => {
+                    debugLog('Step 3: Playing muted...');
+                    player.playVideo();
+                }, 600);
+
+                // Step 4: Unmute after video starts
+                setTimeout(() => {
+                    const currentState = player.getPlayerState();
+                    debugLog('Step 4: Current state = ' + (stateNames[currentState] || currentState));
+
+                    if (currentState === YT.PlayerState.PLAYING || currentState === YT.PlayerState.BUFFERING) {
+                        debugLog('✅ Playing! Unmuting...');
+                        player.unMute();
+                        player.setVolume(savedVolume);
+                        debugLog('🔊 Volume restored to ' + savedVolume);
+                    } else {
+                        debugLog('❌ Still not playing. State: ' + currentState);
+                        debugLog('Opening on YouTube instead...');
+
+                        // If it still fails, open on YouTube
+                        window.open(`https://www.youtube.com/watch?v=${playlist[currentTrackIndex].id}`, '_blank');
+                        showNotification('Opening on YouTube...', 2000);
+                    }
+                    DOM.playPauseBtn.classList.remove('loading');
+                }, 1500);
+
+            } else {
+                // Regular browser - simple play
+                debugLog('▶️ Regular play attempt...');
+                player.playVideo();
+
+                setTimeout(() => {
+                    const newState = player.getPlayerState();
+                    debugLog('State after play: ' + newState + ' (' + (stateNames[newState] || 'UNKNOWN') + ')');
+
+                    if (newState === YT.PlayerState.PLAYING || newState === YT.PlayerState.BUFFERING) {
+                        debugLog('✅ Playback started successfully!');
+                    }
+                    DOM.playPauseBtn.classList.remove('loading');
+                }, 800);
+            }
         }
     } catch (error) {
         debugLog('❌ ERROR: ' + error.message);
