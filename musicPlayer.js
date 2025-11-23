@@ -34,10 +34,6 @@ let playerReady = false;
 const DEBUG_MODE = false; // Set to true to enable debug panel
 let debugLogs = [];
 
-// Instagram auto-restart management
-let instagramAutoRestart = false;
-let restartAttempts = 0;
-const MAX_RESTART_ATTEMPTS = 5;
 
 // Performance optimizations: Cache DOM elements
 let trackElements = [];
@@ -308,26 +304,18 @@ function onPlayerReady(event) {
     DOM.repeatBtn.classList.add('active');
     DOM.repeatBtn.title = 'Repeat: All Tracks';
 
-    debugLog('YouTube player ready');
-    debugLog('User Agent: ' + navigator.userAgent.substring(0, 50) + '...');
+    console.log('YouTube player ready');
 
-    // Detect Instagram/social media in-app browsers that block autoplay
+    // Detect Instagram/social media in-app browsers
     const isInAppBrowser = /Instagram|FBAN|FBAV|Twitter|LinkedIn/i.test(navigator.userAgent);
 
-    if (!isInAppBrowser) {
-        // Only autoplay on regular browsers
-        debugLog('Regular browser - attempting autoplay');
-        player.playVideo();
-    } else {
-        debugLog('Instagram browser detected!');
-
-        // Show redirect prompt for better experience
+    if (isInAppBrowser) {
+        // Show redirect prompt for Instagram users
         showInstagramRedirectPrompt();
-
-        // Cue the video so it's ready to play on user interaction
-        player.cueVideoById(playlist[0].id);
-        debugLog('Video cued and ready');
     }
+
+    // Try autoplay (will work on regular browsers, may not on in-app browsers)
+    player.playVideo();
 }
 
 function onPlayerStateChange(event) {
@@ -341,7 +329,6 @@ function onPlayerStateChange(event) {
         case YT.PlayerState.ENDED:
             isPlaying = false;
             isBuffering = false;
-            instagramAutoRestart = false; // Disable auto-restart on track end
             // Track completion before track ends
             if (window.Analytics) {
                 const track = playlist[currentTrackIndex];
@@ -353,7 +340,6 @@ function onPlayerStateChange(event) {
         case YT.PlayerState.PLAYING:
             isPlaying = true;
             isBuffering = false;
-            restartAttempts = 0; // Reset restart counter on successful play
             // Track play event
             if (window.Analytics) {
                 const track = playlist[currentTrackIndex];
@@ -368,38 +354,17 @@ function onPlayerStateChange(event) {
             break;
 
         case YT.PlayerState.PAUSED:
-            // Instagram browser auto-restart logic
-            const isInAppBrowser = /Instagram|FBAN|FBAV|Twitter|LinkedIn/i.test(navigator.userAgent);
-
-            if (isInAppBrowser && instagramAutoRestart && restartAttempts < MAX_RESTART_ATTEMPTS) {
-                // Instagram paused our video - restart it!
-                restartAttempts++;
-                debugLog('⚠️ Instagram paused playback (attempt ' + restartAttempts + '/' + MAX_RESTART_ATTEMPTS + ')');
-                debugLog('🔄 Auto-restarting...');
-
-                setTimeout(() => {
-                    player.playVideo();
-                }, 200);
-            } else {
-                // Normal pause or max attempts reached
-                if (restartAttempts >= MAX_RESTART_ATTEMPTS) {
-                    debugLog('❌ Max restart attempts reached. Stopping auto-restart.');
-                    instagramAutoRestart = false;
-                    showNotification('⚠️ Instagram keeps pausing. Try "Open on YouTube" button.', 5000);
-                }
-
-                isPlaying = false;
-                isBuffering = false;
-                // Track pause event with listen progress
-                if (window.Analytics && player && player.getCurrentTime && player.getDuration) {
-                    const track = playlist[currentTrackIndex];
-                    Analytics.trackPause(track.title, player.getCurrentTime(), player.getDuration());
-                }
-                updatePlayPauseUI();
-                stopProgressTracking();
-                // Stop looper when paused
-                stopLooper();
+            isPlaying = false;
+            isBuffering = false;
+            // Track pause event with listen progress
+            if (window.Analytics && player && player.getCurrentTime && player.getDuration) {
+                const track = playlist[currentTrackIndex];
+                Analytics.trackPause(track.title, player.getCurrentTime(), player.getDuration());
             }
+            updatePlayPauseUI();
+            stopProgressTracking();
+            // Stop looper when paused
+            stopLooper();
             break;
 
         case YT.PlayerState.BUFFERING:
@@ -746,9 +711,6 @@ function playTrack(index, preservePlayState = false) {
     // Stop looper when changing tracks (it will restart when new track plays)
     stopLooper();
 
-    // Detect if we're in an in-app browser
-    const isInAppBrowser = /Instagram|FBAN|FBAV|Twitter|LinkedIn/i.test(navigator.userAgent);
-
     // Fade out before track change if currently playing
     if (isPlaying && currentVolume > 0) {
         fadeVolume(0, 300);
@@ -758,17 +720,9 @@ function playTrack(index, preservePlayState = false) {
 
             // Only autoplay if preserving state and was playing, or if not preserving state
             if (!preservePlayState || wasPlayingBeforeChange) {
-                // For in-app browsers, add extra delay to ensure video is loaded
-                const playDelay = isInAppBrowser ? 400 : 100;
-                setTimeout(() => {
-                    player.playVideo();
-                    // Fade back in after play starts
-                    if (!isInAppBrowser) {
-                        setTimeout(() => fadeVolume(currentVolume, 400), 200);
-                    } else {
-                        fadeVolume(currentVolume, 400);
-                    }
-                }, playDelay);
+                player.playVideo();
+                // Fade back in after track loads
+                setTimeout(() => fadeVolume(currentVolume, 400), 200);
             }
 
             updateCurrentTrack();
@@ -780,9 +734,7 @@ function playTrack(index, preservePlayState = false) {
 
         // Only autoplay if preserving state and was playing, or if not preserving state
         if (!preservePlayState || wasPlayingBeforeChange) {
-            // For in-app browsers, add extra delay to ensure video is loaded
-            const playDelay = isInAppBrowser ? 400 : 100;
-            setTimeout(() => player.playVideo(), playDelay);
+            player.playVideo();
         }
 
         updateCurrentTrack();
@@ -791,110 +743,13 @@ function playTrack(index, preservePlayState = false) {
 
 function togglePlayPause() {
     if (!player || !playerReady) {
-        debugLog('⚠️ Player not ready!');
         return;
     }
 
-    debugLog('▶️ Play button tapped, isPlaying: ' + isPlaying);
-
-    // Add loading state briefly for visual feedback
-    DOM.playPauseBtn.classList.add('loading');
-
-    try {
-        if (isPlaying) {
-            debugLog('⏸ Pausing video...');
-            player.pauseVideo();
-            // Remove loading state after brief delay
-            setTimeout(() => DOM.playPauseBtn.classList.remove('loading'), 150);
-        } else {
-            // For Instagram and other in-app browsers, ensure we're calling playVideo directly
-            // This handles the user gesture requirement
-            const playerState = player.getPlayerState();
-            const stateNames = {'-1': 'UNSTARTED', '0': 'ENDED', '1': 'PLAYING', '2': 'PAUSED', '3': 'BUFFERING', '5': 'CUED'};
-            debugLog('Player state: ' + playerState + ' (' + (stateNames[playerState] || 'UNKNOWN') + ')');
-
-            // Detect in-app browser
-            const isInAppBrowser = /Instagram|FBAN|FBAV|Twitter|LinkedIn/i.test(navigator.userAgent);
-
-            if (isInAppBrowser) {
-                // Instagram browser workaround: play muted (Instagram allows muted playback)
-                debugLog('🔧 Instagram mode: playing muted');
-
-                // Step 1: Mute the player
-                debugLog('Step 1: Muting player...');
-                player.mute();
-                player.setVolume(0);
-
-                // Step 2: Load video
-                setTimeout(() => {
-                    debugLog('Step 2: Loading video...');
-                    player.loadVideoById({
-                        videoId: playlist[currentTrackIndex].id,
-                        startSeconds: 0
-                    });
-                }, 100);
-
-                // Step 3: Play the muted video
-                setTimeout(() => {
-                    debugLog('Step 3: Playing muted...');
-                    player.playVideo();
-                }, 600);
-
-                // Step 4: Verify playback and enable auto-restart
-                setTimeout(() => {
-                    const currentState = player.getPlayerState();
-                    debugLog('Step 4: State = ' + (stateNames[currentState] || currentState));
-
-                    if (currentState === YT.PlayerState.PLAYING || currentState === YT.PlayerState.BUFFERING) {
-                        debugLog('✅ Playing muted!');
-
-                        // Enable Instagram auto-restart
-                        instagramAutoRestart = true;
-                        restartAttempts = 0;
-                        debugLog('🔄 Auto-restart enabled for Instagram');
-
-                        // Show notification about muted playback with YouTube option
-                        showNotification('🔇 Playing muted due to Instagram restrictions', 4000);
-
-                        // Add "Open on YouTube" button
-                        addYouTubeButton();
-
-                        // Update volume slider to show muted state
-                        DOM.volumeSlider.value = 0;
-                        updateVolumeIcon(0);
-                        currentVolume = 0;
-
-                        debugLog('ℹ️ YouTube button added for audio playback');
-                    } else {
-                        debugLog('❌ Still not playing. State: ' + currentState);
-                        debugLog('Opening on YouTube instead...');
-
-                        // If it still fails, open on YouTube
-                        window.open(`https://www.youtube.com/watch?v=${playlist[currentTrackIndex].id}`, '_blank');
-                        showNotification('Opening on YouTube...', 2000);
-                    }
-                    DOM.playPauseBtn.classList.remove('loading');
-                }, 1500);
-
-            } else {
-                // Regular browser - simple play
-                debugLog('▶️ Regular play attempt...');
-                player.playVideo();
-
-                setTimeout(() => {
-                    const newState = player.getPlayerState();
-                    debugLog('State after play: ' + newState + ' (' + (stateNames[newState] || 'UNKNOWN') + ')');
-
-                    if (newState === YT.PlayerState.PLAYING || newState === YT.PlayerState.BUFFERING) {
-                        debugLog('✅ Playback started successfully!');
-                    }
-                    DOM.playPauseBtn.classList.remove('loading');
-                }, 800);
-            }
-        }
-    } catch (error) {
-        debugLog('❌ ERROR: ' + error.message);
-        DOM.playPauseBtn.classList.remove('loading');
+    if (isPlaying) {
+        player.pauseVideo();
+    } else {
+        player.playVideo();
     }
 }
 
@@ -1190,57 +1045,25 @@ function stopScrubbing() {
 
 function updateVolume(value) {
     currentVolume = value;
-
-    // Detect Instagram browser
-    const isInAppBrowser = /Instagram|FBAN|FBAV|Twitter|LinkedIn/i.test(navigator.userAgent);
-
-    if (value > 0 && isInAppBrowser && player.isMuted()) {
-        // User is trying to unmute in Instagram browser
-        debugLog('🔊 User unmuting: ' + value);
-        player.unMute();
-
-        // Wait a moment to see if Instagram blocks it
-        setTimeout(() => {
-            const state = player.getPlayerState();
-            if (state === YT.PlayerState.PAUSED || state === YT.PlayerState.UNSTARTED) {
-                debugLog('⚠️ Instagram blocked unmute, restarting playback...');
-                player.playVideo();
-            } else {
-                debugLog('✅ Unmute successful!');
-            }
-        }, 300);
-    }
-
     player.setVolume(value);
     localStorage.setItem('playerVolume', value);
     updateVolumeIcon(value);
 }
 
 function toggleMute() {
-    const isInAppBrowser = /Instagram|FBAN|FBAV|Twitter|LinkedIn/i.test(navigator.userAgent);
-
     if (currentVolume > 0) {
-        // Muting
-        debugLog('🔇 Muting...');
+        // Track mute
         if (window.Analytics) {
             Analytics.trackVolume(0, 'mute');
         }
         updateVolume(0);
         DOM.volumeSlider.value = 0;
     } else {
-        // Unmuting
         const savedVolume = parseInt(localStorage.getItem('playerVolume')) || 100;
-        debugLog('🔊 Unmuting to: ' + savedVolume);
-
+        // Track unmute
         if (window.Analytics) {
             Analytics.trackVolume(savedVolume, 'unmute');
         }
-
-        if (isInAppBrowser) {
-            // In Instagram, show notification about potential issues
-            showNotification('🔊 Unmuting... If playback stops, tap play again.', 3000);
-        }
-
         updateVolume(savedVolume);
         DOM.volumeSlider.value = savedVolume;
     }
@@ -1597,70 +1420,6 @@ function showInstagramRedirectPrompt() {
             to { opacity: 0; }
         }
     `;
-}
-
-// ========== INSTAGRAM YOUTUBE BUTTON ==========
-
-function addYouTubeButton() {
-    // Check if button already exists
-    if (document.getElementById('instagram-youtube-btn')) return;
-
-    const button = document.createElement('button');
-    button.id = 'instagram-youtube-btn';
-    button.innerHTML = `
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 8px;">
-            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-        </svg>
-        🔊 Listen with Sound on YouTube
-    `;
-    button.style.cssText = `
-        position: fixed;
-        bottom: 80px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%);
-        color: white;
-        border: none;
-        padding: 16px 24px;
-        border-radius: 30px;
-        font-size: 16px;
-        font-weight: bold;
-        cursor: pointer;
-        z-index: 9999;
-        box-shadow: 0 4px 15px rgba(255, 0, 0, 0.4);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        animation: pulse 2s infinite;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    `;
-
-    // Add pulse animation
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes pulse {
-            0%, 100% { transform: translateX(-50%) scale(1); }
-            50% { transform: translateX(-50%) scale(1.05); }
-        }
-        #instagram-youtube-btn:active {
-            transform: translateX(-50%) scale(0.95) !important;
-        }
-    `;
-    document.head.appendChild(style);
-
-    button.onclick = () => {
-        const track = playlist[currentTrackIndex];
-        debugLog('🎵 Opening on YouTube: ' + track.title);
-        window.open(`https://www.youtube.com/watch?v=${track.id}`, '_blank');
-
-        // Track analytics
-        if (window.Analytics) {
-            Analytics.trackShare(track.title, 'youtube_button_instagram');
-        }
-    };
-
-    document.body.appendChild(button);
-    debugLog('✅ YouTube button added');
 }
 
 // ========== DEBUG SYSTEM FOR MOBILE ==========
