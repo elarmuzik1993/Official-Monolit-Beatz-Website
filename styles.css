@@ -9,20 +9,21 @@
 
 :root {
     /* Colors - Red, Black & Silver */
-    --primary-color: #cc0000;
-    --primary-hover: #e60000;
+    /* Using rgb() for better Samsung browser compatibility */
+    --primary-color: rgb(204, 0, 0);
+    --primary-hover: rgb(230, 0, 0);
     --primary-light: rgba(204, 0, 0, 0.1);
-    --secondary-color: #c0c0c0;
-    --accent-neon: #e60000;
-    --dark-bg: #0a0a0a;
-    --darker-bg: #000000;
-    --light-text: #ffffff;
-    --gray-text: #999999;
-    --silver-text: #c0c0c0;
-    --card-bg: #1a1a1a;
-    --card-hover-bg: #222222;
-    --gradient-1: linear-gradient(135deg, #cc0000 0%, #e60000 100%);
-    --gradient-2: linear-gradient(135deg, #c0c0c0 0%, #808080 100%);
+    --secondary-color: rgb(192, 192, 192);
+    --accent-neon: rgb(230, 0, 0);
+    --dark-bg: rgb(10, 10, 10);
+    --darker-bg: rgb(0, 0, 0);
+    --light-text: rgb(255, 255, 255);
+    --gray-text: rgb(153, 153, 153);
+    --silver-text: rgb(192, 192, 192);
+    --card-bg: rgb(26, 26, 26);
+    --card-hover-bg: rgb(34, 34, 34);
+    --gradient-1: linear-gradient(135deg, rgb(204, 0, 0) 0%, rgb(230, 0, 0) 100%);
+    --gradient-2: linear-gradient(135deg, rgb(192, 192, 192) 0%, rgb(128, 128, 128) 100%);
     --gradient-3: linear-gradient(180deg, rgba(204, 0, 0, 0.05) 0%, transparent 100%);
 
     /* Spacing System - Enhanced for better vertical rhythm */
@@ -141,17 +142,14 @@ html {
     font-family: var(--font-display);
     font-size: 1.8rem;
     font-weight: 400;
-    color: #cc0000; /* Fallback for Samsung browser */
-    color: var(--primary-color);
+    /* Samsung browser fix - force red color with !important */
+    color: #cc0000 !important;
     letter-spacing: 0.15em;
     text-shadow: 0 0 20px rgba(204, 0, 0, 0.4);
     cursor: pointer;
     transition: all 0.3s ease;
     position: relative;
     display: inline-block;
-    /* Force color rendering for Samsung browser */
-    -webkit-text-fill-color: #cc0000;
-    -webkit-text-fill-color: var(--primary-color);
     /* Prevent text wrapping on load */
     white-space: nowrap;
     /* Reserve minimum width to prevent layout shift */
