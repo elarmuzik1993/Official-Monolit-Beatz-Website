@@ -141,6 +141,7 @@ html {
     font-family: var(--font-display);
     font-size: 1.8rem;
     font-weight: 400;
+    color: #cc0000; /* Fallback for Samsung browser */
     color: var(--primary-color);
     letter-spacing: 0.15em;
     text-shadow: 0 0 20px rgba(204, 0, 0, 0.4);
@@ -148,6 +149,9 @@ html {
     transition: all 0.3s ease;
     position: relative;
     display: inline-block;
+    /* Force color rendering for Samsung browser */
+    -webkit-text-fill-color: #cc0000;
+    -webkit-text-fill-color: var(--primary-color);
 }
 
 .logo::before,
