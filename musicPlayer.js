@@ -790,19 +790,15 @@ function togglePlayPause() {
             const isInAppBrowser = /Instagram|FBAN|FBAV|Twitter|LinkedIn/i.test(navigator.userAgent);
 
             if (isInAppBrowser) {
-                // Instagram browser workaround: mute first, play muted, then unmute
-                // This bypasses Instagram's autoplay restrictions
-                debugLog('🔧 Instagram workaround: mute → play → unmute');
-
-                // Save current volume
-                const savedVolume = currentVolume;
+                // Instagram browser workaround: play muted (Instagram allows muted playback)
+                debugLog('🔧 Instagram mode: playing muted');
 
                 // Step 1: Mute the player
                 debugLog('Step 1: Muting player...');
                 player.mute();
                 player.setVolume(0);
 
-                // Step 2: Load and play muted video
+                // Step 2: Load video
                 setTimeout(() => {
                     debugLog('Step 2: Loading video...');
                     player.loadVideoById({
@@ -811,22 +807,29 @@ function togglePlayPause() {
                     });
                 }, 100);
 
-                // Step 3: Play the video while muted
+                // Step 3: Play the muted video
                 setTimeout(() => {
                     debugLog('Step 3: Playing muted...');
                     player.playVideo();
                 }, 600);
 
-                // Step 4: Unmute after video starts
+                // Step 4: Verify playback and show instructions
                 setTimeout(() => {
                     const currentState = player.getPlayerState();
-                    debugLog('Step 4: Current state = ' + (stateNames[currentState] || currentState));
+                    debugLog('Step 4: State = ' + (stateNames[currentState] || currentState));
 
                     if (currentState === YT.PlayerState.PLAYING || currentState === YT.PlayerState.BUFFERING) {
-                        debugLog('✅ Playing! Unmuting...');
-                        player.unMute();
-                        player.setVolume(savedVolume);
-                        debugLog('🔊 Volume restored to ' + savedVolume);
+                        debugLog('✅ Playing muted!');
+
+                        // Show notification about muted playback
+                        showNotification('🔇 Playing muted (Instagram restriction). Tap volume to unmute.', 5000);
+
+                        // Update volume slider to show muted state
+                        DOM.volumeSlider.value = 0;
+                        updateVolumeIcon(0);
+                        currentVolume = 0;
+
+                        debugLog('ℹ️ User can manually unmute using volume controls');
                     } else {
                         debugLog('❌ Still not playing. State: ' + currentState);
                         debugLog('Opening on YouTube instead...');
@@ -1152,25 +1155,57 @@ function stopScrubbing() {
 
 function updateVolume(value) {
     currentVolume = value;
+
+    // Detect Instagram browser
+    const isInAppBrowser = /Instagram|FBAN|FBAV|Twitter|LinkedIn/i.test(navigator.userAgent);
+
+    if (value > 0 && isInAppBrowser && player.isMuted()) {
+        // User is trying to unmute in Instagram browser
+        debugLog('🔊 User unmuting: ' + value);
+        player.unMute();
+
+        // Wait a moment to see if Instagram blocks it
+        setTimeout(() => {
+            const state = player.getPlayerState();
+            if (state === YT.PlayerState.PAUSED || state === YT.PlayerState.UNSTARTED) {
+                debugLog('⚠️ Instagram blocked unmute, restarting playback...');
+                player.playVideo();
+            } else {
+                debugLog('✅ Unmute successful!');
+            }
+        }, 300);
+    }
+
     player.setVolume(value);
     localStorage.setItem('playerVolume', value);
     updateVolumeIcon(value);
 }
 
 function toggleMute() {
+    const isInAppBrowser = /Instagram|FBAN|FBAV|Twitter|LinkedIn/i.test(navigator.userAgent);
+
     if (currentVolume > 0) {
-        // Track mute
+        // Muting
+        debugLog('🔇 Muting...');
         if (window.Analytics) {
             Analytics.trackVolume(0, 'mute');
         }
         updateVolume(0);
         DOM.volumeSlider.value = 0;
     } else {
+        // Unmuting
         const savedVolume = parseInt(localStorage.getItem('playerVolume')) || 100;
-        // Track unmute
+        debugLog('🔊 Unmuting to: ' + savedVolume);
+
         if (window.Analytics) {
             Analytics.trackVolume(savedVolume, 'unmute');
         }
+
+        if (isInAppBrowser) {
+            // In Instagram, show notification about potential issues
+            showNotification('🔊 Unmuting... If playback stops, tap play again.', 3000);
+        }
+
         updateVolume(savedVolume);
         DOM.volumeSlider.value = savedVolume;
     }
