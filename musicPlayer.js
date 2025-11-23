@@ -30,8 +30,8 @@ let shuffleHistory = [];
 let wasPlayingBeforeChange = false;
 let playerReady = false;
 
-// Debug mode for Instagram browser testing
-const DEBUG_MODE = /Instagram|FBAN|FBAV/i.test(navigator.userAgent);
+// Debug mode for Instagram browser testing (disabled in production)
+const DEBUG_MODE = false; // Set to true to enable debug panel
 let debugLogs = [];
 
 // Instagram auto-restart management
