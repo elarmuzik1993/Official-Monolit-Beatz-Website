@@ -300,6 +300,7 @@ function onPlayerReady(event) {
     DOM.repeatBtn.title = 'Repeat: All Tracks';
 
     console.log('YouTube player ready');
+    console.log('User Agent:', navigator.userAgent);
 
     // Detect Instagram/social media in-app browsers that block autoplay
     const isInAppBrowser = /Instagram|FBAN|FBAV|Twitter|LinkedIn/i.test(navigator.userAgent);
@@ -309,6 +310,10 @@ function onPlayerReady(event) {
         player.playVideo();
     } else {
         console.log('In-app browser detected - autoplay disabled, user must click play');
+
+        // Show helpful message to user
+        showNotification('🎵 Tap the play button to start listening', 4000);
+
         // Cue the video so it's ready to play on user interaction
         player.cueVideoById(playlist[0].id);
     }
@@ -755,11 +760,14 @@ function togglePlayPause() {
         return;
     }
 
+    console.log('togglePlayPause called, isPlaying:', isPlaying);
+
     // Add loading state briefly for visual feedback
     DOM.playPauseBtn.classList.add('loading');
 
     try {
         if (isPlaying) {
+            console.log('Pausing video...');
             player.pauseVideo();
             // Remove loading state after brief delay
             setTimeout(() => DOM.playPauseBtn.classList.remove('loading'), 150);
@@ -767,22 +775,48 @@ function togglePlayPause() {
             // For Instagram and other in-app browsers, ensure we're calling playVideo directly
             // This handles the user gesture requirement
             const playerState = player.getPlayerState();
-            console.log('Current player state:', playerState);
+            console.log('Current player state before play:', playerState);
+            console.log('State codes: UNSTARTED=-1, ENDED=0, PLAYING=1, PAUSED=2, BUFFERING=3, CUED=5');
 
-            // Force play regardless of current state
-            player.playVideo();
+            // Detect in-app browser
+            const isInAppBrowser = /Instagram|FBAN|FBAV|Twitter|LinkedIn/i.test(navigator.userAgent);
+
+            if (isInAppBrowser && (playerState === -1 || playerState === 5)) {
+                // For in-app browsers with unstarted/cued state, use loadVideoById first
+                console.log('In-app browser detected with unstarted/cued video - loading first...');
+                player.loadVideoById({
+                    videoId: playlist[currentTrackIndex].id,
+                    startSeconds: 0
+                });
+                // Wait for load, then play
+                setTimeout(() => {
+                    console.log('Attempting play after load...');
+                    player.playVideo();
+                }, 500);
+            } else {
+                // Regular play attempt
+                console.log('Regular play attempt...');
+                player.playVideo();
+            }
 
             // Fallback: if playVideo doesn't work, try loading and playing
             setTimeout(() => {
                 const newState = player.getPlayerState();
+                console.log('Player state after play attempt:', newState);
                 if (newState !== YT.PlayerState.PLAYING && newState !== YT.PlayerState.BUFFERING) {
                     console.log('First play attempt failed, trying alternative method');
-                    player.loadVideoById(playlist[currentTrackIndex].id);
+                    player.loadVideoById({
+                        videoId: playlist[currentTrackIndex].id,
+                        startSeconds: 0
+                    });
                     // Give it a moment to load, then play again
-                    setTimeout(() => player.playVideo(), 100);
+                    setTimeout(() => {
+                        console.log('Second play attempt...');
+                        player.playVideo();
+                    }, 300);
                 }
                 DOM.playPauseBtn.classList.remove('loading');
-            }, 300);
+            }, 800);
         }
     } catch (error) {
         console.error('Error in togglePlayPause:', error);
