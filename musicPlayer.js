@@ -320,10 +320,9 @@ function onPlayerReady(event) {
         player.playVideo();
     } else {
         debugLog('Instagram browser detected!');
-        debugLog('Autoplay disabled - user must tap play');
 
-        // Show helpful message to user
-        showNotification('🎵 Tap the play button to start listening', 4000);
+        // Show redirect prompt for better experience
+        showInstagramRedirectPrompt();
 
         // Cue the video so it's ready to play on user interaction
         player.cueVideoById(playlist[0].id);
@@ -1474,6 +1473,130 @@ function showNotification(message, duration = 2000) {
     notificationTimeout = setTimeout(() => {
         DOM.notificationToast.classList.remove('show');
     }, duration);
+}
+
+// ========== INSTAGRAM REDIRECT PROMPT ==========
+
+function showInstagramRedirectPrompt() {
+    // Check if user has dismissed this before
+    if (localStorage.getItem('instagram_redirect_dismissed') === 'true') {
+        return;
+    }
+
+    const overlay = document.createElement('div');
+    overlay.id = 'instagram-redirect-overlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.95);
+        z-index: 99999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        animation: fadeIn 0.3s ease-in;
+    `;
+
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+        border-radius: 20px;
+        padding: 30px;
+        max-width: 400px;
+        width: 100%;
+        text-align: center;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        border: 2px solid #cc0000;
+    `;
+
+    modal.innerHTML = `
+        <div style="font-size: 60px; margin-bottom: 20px;">🎵</div>
+        <h2 style="color: #fff; margin: 0 0 15px 0; font-size: 24px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+            For the Best Experience
+        </h2>
+        <p style="color: #ccc; margin: 0 0 25px 0; font-size: 16px; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+            Instagram's browser doesn't support audio playback. Open this page in your default browser for full sound!
+        </p>
+
+        <div style="background: rgba(255, 255, 255, 0.1); border-radius: 15px; padding: 20px; margin-bottom: 25px;">
+            <p style="color: #fff; margin: 0 0 15px 0; font-size: 14px; font-weight: bold; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                How to Open in Browser:
+            </p>
+            <ol style="color: #ccc; text-align: left; margin: 0; padding-left: 20px; font-size: 14px; line-height: 2; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                <li>Tap the <strong style="color: #fff;">⋯</strong> (three dots) at the top</li>
+                <li>Select <strong style="color: #fff;">"Open in Browser"</strong> or <strong style="color: #fff;">"Open in Safari/Chrome"</strong></li>
+            </ol>
+        </div>
+
+        <button id="instagram-continue-btn" style="
+            width: 100%;
+            background: linear-gradient(135deg, #cc0000 0%, #990000 100%);
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 12px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            box-shadow: 0 4px 15px rgba(204, 0, 0, 0.3);
+        ">
+            Continue Anyway (Muted)
+        </button>
+
+        <button id="instagram-dismiss-btn" style="
+            background: transparent;
+            color: #888;
+            border: none;
+            padding: 10px;
+            font-size: 14px;
+            cursor: pointer;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        ">
+            Don't show this again
+        </button>
+    `;
+
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    // Add fade-in animation
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        #instagram-continue-btn:active {
+            transform: scale(0.95);
+        }
+    `;
+    document.head.appendChild(style);
+
+    // Continue button - close overlay
+    document.getElementById('instagram-continue-btn').onclick = () => {
+        overlay.style.animation = 'fadeOut 0.3s ease-out';
+        setTimeout(() => overlay.remove(), 300);
+    };
+
+    // Dismiss forever button
+    document.getElementById('instagram-dismiss-btn').onclick = () => {
+        localStorage.setItem('instagram_redirect_dismissed', 'true');
+        overlay.style.animation = 'fadeOut 0.3s ease-out';
+        setTimeout(() => overlay.remove(), 300);
+    };
+
+    // Add fade-out animation
+    style.textContent += `
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+    `;
 }
 
 // ========== INSTAGRAM YOUTUBE BUTTON ==========
