@@ -854,15 +854,18 @@ function togglePlayPause() {
                         restartAttempts = 0;
                         debugLog('🔄 Auto-restart enabled for Instagram');
 
-                        // Show notification about muted playback
-                        showNotification('🔇 Playing muted (Instagram restriction). Tap volume to unmute.', 5000);
+                        // Show notification about muted playback with YouTube option
+                        showNotification('🔇 Playing muted due to Instagram restrictions', 4000);
+
+                        // Add "Open on YouTube" button
+                        addYouTubeButton();
 
                         // Update volume slider to show muted state
                         DOM.volumeSlider.value = 0;
                         updateVolumeIcon(0);
                         currentVolume = 0;
 
-                        debugLog('ℹ️ User can manually unmute using volume controls');
+                        debugLog('ℹ️ YouTube button added for audio playback');
                     } else {
                         debugLog('❌ Still not playing. State: ' + currentState);
                         debugLog('Opening on YouTube instead...');
@@ -1471,6 +1474,70 @@ function showNotification(message, duration = 2000) {
     notificationTimeout = setTimeout(() => {
         DOM.notificationToast.classList.remove('show');
     }, duration);
+}
+
+// ========== INSTAGRAM YOUTUBE BUTTON ==========
+
+function addYouTubeButton() {
+    // Check if button already exists
+    if (document.getElementById('instagram-youtube-btn')) return;
+
+    const button = document.createElement('button');
+    button.id = 'instagram-youtube-btn';
+    button.innerHTML = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 8px;">
+            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+        </svg>
+        🔊 Listen with Sound on YouTube
+    `;
+    button.style.cssText = `
+        position: fixed;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%);
+        color: white;
+        border: none;
+        padding: 16px 24px;
+        border-radius: 30px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        z-index: 9999;
+        box-shadow: 0 4px 15px rgba(255, 0, 0, 0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: pulse 2s infinite;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    `;
+
+    // Add pulse animation
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes pulse {
+            0%, 100% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(1.05); }
+        }
+        #instagram-youtube-btn:active {
+            transform: translateX(-50%) scale(0.95) !important;
+        }
+    `;
+    document.head.appendChild(style);
+
+    button.onclick = () => {
+        const track = playlist[currentTrackIndex];
+        debugLog('🎵 Opening on YouTube: ' + track.title);
+        window.open(`https://www.youtube.com/watch?v=${track.id}`, '_blank');
+
+        // Track analytics
+        if (window.Analytics) {
+            Analytics.trackShare(track.title, 'youtube_button_instagram');
+        }
+    };
+
+    document.body.appendChild(button);
+    debugLog('✅ YouTube button added');
 }
 
 // ========== DEBUG SYSTEM FOR MOBILE ==========
